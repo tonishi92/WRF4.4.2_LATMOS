@@ -1120,7 +1120,8 @@ CHARACTER(LEN=8) :: name
 
    icloud_cu = 0
    IF ( config_flags%cu_rad_feedback ) THEN
-      IF ( config_flags%cu_physics == kfetascheme ) THEN
+      IF ( config_flags%cu_physics == kfetascheme .OR. &
+         config_flags%cu_physics == KFCUPSCHEME ) THEN
          icloud_cu = 2
       ELSE IF ( config_flags%cu_physics == gfscheme .OR. &
                 config_flags%cu_physics == g3scheme .OR. &
