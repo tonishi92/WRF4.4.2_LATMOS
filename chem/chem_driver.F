@@ -5,6 +5,34 @@
 ! 10/12/2011 - Ravan Ahmadov (NOAA) updated to include the RACM_SOA_VBS option
 ! 10/08/2014 - Kai Wang and Yang Zhang (NCSU) updated to include the CB05_MADE/SORGAM and CB05_MADE/VBS options
 !
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!lm 2015/07: Added two diagnostic variables, wet_dep_bc and dry_dep_bc,
+!            representing accumulated bc deposition (µg m-2) due to dry dep and
+!            wet dep in MOSAIC. Dry dep is done in mixactivate, and wet dep in
+!            chem_cup and mosaic_wetscav 
+
+
+
+
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine chem_driver ( grid , config_flags   &
  
@@ -1063,6 +1091,11 @@
                  grid%setvel_1,grid%setvel_2,grid%setvel_3,grid%setvel_4,             &
                  grid%setvel_5, imod,                                                 &                  
                  grid%is_CAMMGMP_used,                                                &
+!lm
+!
+!ND TEST FOR OUTPUTING DRY DEPOSITION MASSIVELY
+                 grid%dryd_ct,                                                        &
+!lm
                  grid%dep_vel,grid%num_vert_mix,                                      &
                  ids,ide, jds,jde, kds,kde,                                           &
                  ims,ime, jms,jme, kms,kme,                                           &
@@ -1531,6 +1564,12 @@ if ( cam_mam_aerosols ) &
                 grid%na_a_5to6_ic_cup,  grid%na_cw_5to6_ic_cup,                         &
                 grid%cl_a_5to6_ic_cup,  grid%cl_cw_5to6_ic_cup,                         &
                 grid%water_5to6_ic_cup,                                                 & 
+!lm
+!                grid%wet_dep_bc,                                                        &
+!ND add all the species for wet deposition
+                grid%wetd_ct,                                                           &
+!ND
+!lm
                 ids,ide, jds,jde, kds,kde,                                              &
                 ims,ime, jms,jme, kms,kme,                                              &
                 its,ite, jts,jte, kts,kte                                               )
@@ -1637,6 +1676,12 @@ if ( cam_mam_aerosols ) &
               grid%f_ice_phy,grid%f_rain_phy,grid%cldfrai,grid%cldfral,               &
               grid%cldfra_mp_all,grid%is_CAMMGMP_used,                                &
 !======================================================================================
+!!lm
+!              grid%wet_dep_bc,                                                        &
+!!lm
+!ND add all the species for wet deposition
+              grid%wetd_ct,                                                           &
+!ND
               ids,ide, jds,jde, kds,kde,                                              &
               ims,ime, jms,jme, kms,kme,                                              &
               its,ite, jts,jte, kts,kte)                                              
@@ -1797,6 +1842,7 @@ end if !Chemistry time step check
                                ims,ime, jms,jme, kms,kme,           &
                                its,ite, jts,jte, kts,kte            )
     endif
+
 
    END DO chem_tile_loop_1
 

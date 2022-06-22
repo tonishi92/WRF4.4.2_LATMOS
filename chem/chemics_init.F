@@ -1,6 +1,11 @@
 !WRF:MODEL_LAYER:INITIALIZATION
 !
 !lm Louis Marelle 2016/5/17: Add lightning nox parameterization for KF-CuP cumuli
+                                                                               
+                                                              
+                                                                               
+!lm 2015/07: diagnosis variables for accumulated BC deposition, dry_dep_bc and
+!wet_dep_bc, are initialized here to zero
 !
    subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,chemdt,stepbioe, &
                stepphot,stepchem,stepfirepl,plumerisefire_frq,z_at_w,xlat,xlong,    &

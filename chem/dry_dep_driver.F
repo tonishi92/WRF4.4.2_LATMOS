@@ -4,6 +4,10 @@
 !                   Richard C. Easter (PNNL)
 ! 10/11/2011 - Ravan Ahmadov (NOAA) updated to include the RACM_SOA_VBS option
 !
+
+
+!lm 2015/07: Added a diagnostic variable, dry_dep_bc, representing accumulated
+!            bc deposition (µg m-2) due to dry dep in MOSAIC, calculated in mixactivate
 !WRF:MODEL_LAYER:CHEMICS
 !
 MODULE module_dry_dep_driver
@@ -30,6 +34,11 @@ CONTAINS
                dustgraset_4,dustgraset_5,                                 &
                setvel_1,setvel_2,setvel_3,setvel_4,setvel_5, imod,        &         
                is_CAMMGMP_used,                                           &
+!lm
+!
+!ND TEST FOR MASSIVE OUTPUT OF DRY DEPOSITION
+               dryd_ct,                                                   &
+!lm
                dep_vel,num_vert_mix,                                      &
                ids,ide, jds,jde, kds,kde,                                 &
                ims,ime, jms,jme, kms,kme,                                 &
@@ -130,6 +139,12 @@ CONTAINS
                                                      xlong,     &
                                                      snowh,     &
                                           xland,znt,raincv,ash_fall
+!ND TEST FOR ADDING DRY DEPOSITION ON THE OUTPUT IN A MORE MASSIVE WAY
+   REAL, DIMENSION( ims:ime , 1, jms:jme, num_chem ), INTENT(INOUT) :: dryd_ct
+   REAL :: old, new, fac
+   REAL, DIMENSION(num_chem) :: dryd_mass
+!ND ----------------------------------------------------------------------------
+
    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,        &
           INTENT(INOUT ) ::                                     &
                     cldfra,     & ! cloud fraction current timestep
@@ -167,7 +182,7 @@ CONTAINS
 ! .. Local Scalars ..
       REAL ::  clwchem,  dvfog, dvpart,  &
         rad, rhchem, ta, ustar, vegfrac, z1,zntt
-      REAL ::  old, new, fac
+!      REAL ::  old, new, fac
 
       INTEGER :: iland, iprt, iseason, jce, jcs,  &
                  n, nr, ipr, jpr, nvr,   &
@@ -791,6 +806,101 @@ CONTAINS
             chem(i,k,j,nv)=max(epsilc,pblst(k))
          enddo
       enddo
+!ND NEW CODE TO CALCULATE DRY DEPOSITION MASSIVELY
+      if ( config_flags%diagnostic_chem == DEPOUT1 .and. &
+           ( config_flags%chem_opt == SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP )) then
+               dryd_ct(i,1,j,p_dryd_o3)       = dryd_ct(i,1,j,p_dryd_o3)      - ddmassn(p_o3)      
+               dryd_ct(i,1,j,p_dryd_h2o2)     = dryd_ct(i,1,j,p_dryd_h2o2)    - ddmassn(p_h2o2)
+               dryd_ct(i,1,j,p_dryd_no)       = dryd_ct(i,1,j,p_dryd_no)      - ddmassn(p_no)
+               dryd_ct(i,1,j,p_dryd_no2)      = dryd_ct(i,1,j,p_dryd_no2)     - ddmassn(p_no2)
+               dryd_ct(i,1,j,p_dryd_no3)      = dryd_ct(i,1,j,p_dryd_no3)     - ddmassn(p_no3)
+               dryd_ct(i,1,j,p_dryd_n2o5)     = dryd_ct(i,1,j,p_dryd_n2o5)    - ddmassn(p_n2o5)
+               dryd_ct(i,1,j,p_dryd_hono)     = dryd_ct(i,1,j,p_dryd_hono)    - ddmassn(p_hono)
+               dryd_ct(i,1,j,p_dryd_hno3)     = dryd_ct(i,1,j,p_dryd_hno3)    - ddmassn(p_hno3)
+               dryd_ct(i,1,j,p_dryd_hno4)     = dryd_ct(i,1,j,p_dryd_hno4)    - ddmassn(p_hno4)
+               dryd_ct(i,1,j,p_dryd_so2)      = dryd_ct(i,1,j,p_dryd_so2)     - ddmassn(p_so2)
+               dryd_ct(i,1,j,p_dryd_h2so4)    = dryd_ct(i,1,j,p_dryd_h2so4)   - ddmassn(p_h2so4)
+               dryd_ct(i,1,j,p_dryd_co)       = dryd_ct(i,1,j,p_dryd_co)      - ddmassn(p_co)
+               dryd_ct(i,1,j,p_dryd_hcho)     = dryd_ct(i,1,j,p_dryd_hcho)    - ddmassn(p_hcho)
+               dryd_ct(i,1,j,p_dryd_ccho)     = dryd_ct(i,1,j,p_dryd_ccho)    - ddmassn(p_ccho)
+               dryd_ct(i,1,j,p_dryd_rcho)     = dryd_ct(i,1,j,p_dryd_rcho)    - ddmassn(p_rcho)
+               dryd_ct(i,1,j,p_dryd_acet)     = dryd_ct(i,1,j,p_dryd_acet)    - ddmassn(p_acet)
+               dryd_ct(i,1,j,p_dryd_mek)      = dryd_ct(i,1,j,p_dryd_mek)     - ddmassn(p_mek)
+               dryd_ct(i,1,j,p_dryd_hcooh)    = dryd_ct(i,1,j,p_dryd_hcooh)   - ddmassn(p_hcooh)
+               dryd_ct(i,1,j,p_dryd_meoh)     = dryd_ct(i,1,j,p_dryd_meoh)    - ddmassn(p_meoh)
+               dryd_ct(i,1,j,p_dryd_etoh)     = dryd_ct(i,1,j,p_dryd_etoh)    - ddmassn(p_etoh)
+               dryd_ct(i,1,j,p_dryd_cco_oh)   = dryd_ct(i,1,j,p_dryd_cco_oh)  - ddmassn(p_cco_oh)
+               dryd_ct(i,1,j,p_dryd_rco_oh)   = dryd_ct(i,1,j,p_dryd_rco_oh)  - ddmassn(p_rco_oh)
+               dryd_ct(i,1,j,p_dryd_gly)      = dryd_ct(i,1,j,p_dryd_gly)     - ddmassn(p_gly)
+               dryd_ct(i,1,j,p_dryd_mgly)     = dryd_ct(i,1,j,p_dryd_mgly)    - ddmassn(p_mgly)
+               dryd_ct(i,1,j,p_dryd_bacl)     = dryd_ct(i,1,j,p_dryd_bacl)    - ddmassn(p_bacl)
+               dryd_ct(i,1,j,p_dryd_cres)     = dryd_ct(i,1,j,p_dryd_cres)    - ddmassn(p_cres)
+               dryd_ct(i,1,j,p_dryd_bald)     = dryd_ct(i,1,j,p_dryd_bald)    - ddmassn(p_bald)
+               dryd_ct(i,1,j,p_dryd_isoprod)  = dryd_ct(i,1,j,p_dryd_isoprod) - ddmassn(p_isoprod)
+               dryd_ct(i,1,j,p_dryd_methacro) = dryd_ct(i,1,j,p_dryd_methacro)- ddmassn(p_methacro)
+               dryd_ct(i,1,j,p_dryd_mvk)      = dryd_ct(i,1,j,p_dryd_mvk)     - ddmassn(p_mvk)
+               dryd_ct(i,1,j,p_dryd_prod2)    = dryd_ct(i,1,j,p_dryd_prod2)   - ddmassn(p_prod2)
+               dryd_ct(i,1,j,p_dryd_dcb1)     = dryd_ct(i,1,j,p_dryd_dcb1)    - ddmassn(p_dcb1)
+               dryd_ct(i,1,j,p_dryd_dcb2)     = dryd_ct(i,1,j,p_dryd_dcb2)    - ddmassn(p_dcb2)
+               dryd_ct(i,1,j,p_dryd_dcb3)     = dryd_ct(i,1,j,p_dryd_dcb3)    - ddmassn(p_dcb3)
+               dryd_ct(i,1,j,p_dryd_ethene)   = dryd_ct(i,1,j,p_dryd_ethene)  - ddmassn(p_ethene)
+               dryd_ct(i,1,j,p_dryd_isoprene) = dryd_ct(i,1,j,p_dryd_isoprene)- ddmassn(p_isoprene)
+               dryd_ct(i,1,j,p_dryd_c2h6)     = dryd_ct(i,1,j,p_dryd_c2h6)    - ddmassn(p_c2h6)
+               dryd_ct(i,1,j,p_dryd_c3h8)     = dryd_ct(i,1,j,p_dryd_c3h8)    - ddmassn(p_c3h8)
+               dryd_ct(i,1,j,p_dryd_c2h2)     = dryd_ct(i,1,j,p_dryd_c2h2)    - ddmassn(p_c2h2)
+               dryd_ct(i,1,j,p_dryd_c3h6)     = dryd_ct(i,1,j,p_dryd_c3h6)    - ddmassn(p_c3h6)
+               dryd_ct(i,1,j,p_dryd_alk3)     = dryd_ct(i,1,j,p_dryd_alk3)    - ddmassn(p_alk3)
+               dryd_ct(i,1,j,p_dryd_alk4)     = dryd_ct(i,1,j,p_dryd_alk4)    - ddmassn(p_alk4)
+               dryd_ct(i,1,j,p_dryd_alk5)     = dryd_ct(i,1,j,p_dryd_alk5)    - ddmassn(p_alk5)
+               dryd_ct(i,1,j,p_dryd_aro1)     = dryd_ct(i,1,j,p_dryd_aro1)    - ddmassn(p_aro1)
+               dryd_ct(i,1,j,p_dryd_aro2)     = dryd_ct(i,1,j,p_dryd_aro2)    - ddmassn(p_aro2)
+               dryd_ct(i,1,j,p_dryd_ole1)     = dryd_ct(i,1,j,p_dryd_ole1)    - ddmassn(p_ole1)
+               dryd_ct(i,1,j,p_dryd_ole2)     = dryd_ct(i,1,j,p_dryd_ole2)    - ddmassn(p_ole2)
+               dryd_ct(i,1,j,p_dryd_terp)     = dryd_ct(i,1,j,p_dryd_terp)    - ddmassn(p_terp)
+               dryd_ct(i,1,j,p_dryd_rno3)     = dryd_ct(i,1,j,p_dryd_rno3)    - ddmassn(p_rno3)
+               dryd_ct(i,1,j,p_dryd_nphe)     = dryd_ct(i,1,j,p_dryd_nphe)    - ddmassn(p_nphe)
+               dryd_ct(i,1,j,p_dryd_phen)     = dryd_ct(i,1,j,p_dryd_phen)    - ddmassn(p_phen)
+               dryd_ct(i,1,j,p_dryd_pan)      = dryd_ct(i,1,j,p_dryd_pan)     - ddmassn(p_pan)
+               dryd_ct(i,1,j,p_dryd_pan2)     = dryd_ct(i,1,j,p_dryd_pan2)    - ddmassn(p_pan2)
+               dryd_ct(i,1,j,p_dryd_pbzn)     = dryd_ct(i,1,j,p_dryd_pbzn)    - ddmassn(p_pbzn)
+               dryd_ct(i,1,j,p_dryd_ma_pan)   = dryd_ct(i,1,j,p_dryd_ma_pan)  - ddmassn(p_ma_pan)
+               dryd_ct(i,1,j,p_dryd_co2)      = dryd_ct(i,1,j,p_dryd_co2)     - ddmassn(p_co2)
+               dryd_ct(i,1,j,p_dryd_cco_ooh)  = dryd_ct(i,1,j,p_dryd_cco_ooh) - ddmassn(p_cco_ooh)
+               dryd_ct(i,1,j,p_dryd_rco_o2)   = dryd_ct(i,1,j,p_dryd_rco_o2)  - ddmassn(p_rco_o2)
+               dryd_ct(i,1,j,p_dryd_rco_ooh)  = dryd_ct(i,1,j,p_dryd_rco_ooh) - ddmassn(p_rco_ooh)
+               dryd_ct(i,1,j,p_dryd_xn)       = dryd_ct(i,1,j,p_dryd_xn)      - ddmassn(p_xn)
+               dryd_ct(i,1,j,p_dryd_xc)       = dryd_ct(i,1,j,p_dryd_xc)      - ddmassn(p_xc)
+               dryd_ct(i,1,j,p_dryd_ho)       = dryd_ct(i,1,j,p_dryd_ho)      - ddmassn(p_ho)
+               dryd_ct(i,1,j,p_dryd_ho2)      = dryd_ct(i,1,j,p_dryd_ho2)     - ddmassn(p_ho2)
+               dryd_ct(i,1,j,p_dryd_c_o2)     = dryd_ct(i,1,j,p_dryd_c_o2)    - ddmassn(p_c_o2)
+               dryd_ct(i,1,j,p_dryd_cooh)     = dryd_ct(i,1,j,p_dryd_cooh)    - ddmassn(p_cooh)
+               dryd_ct(i,1,j,p_dryd_rooh)     = dryd_ct(i,1,j,p_dryd_rooh)    - ddmassn(p_rooh)
+               dryd_ct(i,1,j,p_dryd_ro2_r)    = dryd_ct(i,1,j,p_dryd_ro2_r)   - ddmassn(p_ro2_r)
+               dryd_ct(i,1,j,p_dryd_r2o2)     = dryd_ct(i,1,j,p_dryd_r2o2)    - ddmassn(p_r2o2)
+               dryd_ct(i,1,j,p_dryd_ro2_n)    = dryd_ct(i,1,j,p_dryd_ro2_n)   - ddmassn(p_ro2_n)
+               dryd_ct(i,1,j,p_dryd_cco_o2)   = dryd_ct(i,1,j,p_dryd_cco_o2)  - ddmassn(p_cco_o2)
+               dryd_ct(i,1,j,p_dryd_bzco_o2)  = dryd_ct(i,1,j,p_dryd_bzco_o2) - ddmassn(p_bzco_o2)
+               dryd_ct(i,1,j,p_dryd_ma_rco3)  = dryd_ct(i,1,j,p_dryd_ma_rco3) - ddmassn(p_ma_rco3)
+               dryd_ct(i,1,j,p_dryd_sesq)     = dryd_ct(i,1,j,p_dryd_sesq)    - ddmassn(p_sesq)
+               dryd_ct(i,1,j,p_dryd_psd1)     = dryd_ct(i,1,j,p_dryd_psd1)    - ddmassn(p_psd1)
+               dryd_ct(i,1,j,p_dryd_psd2)     = dryd_ct(i,1,j,p_dryd_psd2)    - ddmassn(p_psd2)
+               dryd_ct(i,1,j,p_dryd_nh3)      = dryd_ct(i,1,j,p_dryd_nh3)     - ddmassn(p_nh3)
+               dryd_ct(i,1,j,p_dryd_hcl)      = dryd_ct(i,1,j,p_dryd_hcl)     - ddmassn(p_hcl)
+               dryd_ct(i,1,j,p_dryd_nume)     = dryd_ct(i,1,j,p_dryd_nume)    - ddmassn(p_nume)
+               dryd_ct(i,1,j,p_dryd_den)      = dryd_ct(i,1,j,p_dryd_den)     - ddmassn(p_den)
+               dryd_ct(i,1,j,p_dryd_ant1_c)   = dryd_ct(i,1,j,p_dryd_ant1_c)  - ddmassn(p_ant1_c)
+!TO2               dryd_ct(i,1,j,p_dryd_ant2_c)   = dryd_ct(i,1,j,p_dryd_ant2_c)  - ddmassn(p_ant2_c)
+!TO2               dryd_ct(i,1,j,p_dryd_ant3_c)   = dryd_ct(i,1,j,p_dryd_ant3_c)  - ddmassn(p_ant3_c)
+!TO2               dryd_ct(i,1,j,p_dryd_ant4_c)   = dryd_ct(i,1,j,p_dryd_ant4_c)  - ddmassn(p_ant4_c)
+               dryd_ct(i,1,j,p_dryd_biog1_c)  = dryd_ct(i,1,j,p_dryd_biog1_c) - ddmassn(p_biog1_c)
+!TO2               dryd_ct(i,1,j,p_dryd_biog2_c)  = dryd_ct(i,1,j,p_dryd_biog2_c) - ddmassn(p_biog2_c)
+!TO2               dryd_ct(i,1,j,p_dryd_biog3_c)  = dryd_ct(i,1,j,p_dryd_biog3_c) - ddmassn(p_biog3_c)
+!TO2               dryd_ct(i,1,j,p_dryd_biog4_c)  = dryd_ct(i,1,j,p_dryd_biog4_c) - ddmassn(p_biog4_c)
+               dryd_ct(i,1,j,p_dryd_dms)      = dryd_ct(i,1,j,p_dryd_dms)     - ddmassn(p_dms)
+               dryd_ct(i,1,j,p_dryd_ch4)      = dryd_ct(i,1,j,p_dryd_ch4)     - ddmassn(p_ch4)
+
+      endif
+!ND NEW CODE UP TO HERE
 
       if( config_flags%diagnostic_chem == DEPVEL1 .and. &
           (config_flags%chem_opt == CB05_SORG_VBS_AQ_KPP) ) then
@@ -1108,6 +1218,9 @@ CONTAINS
 		moist(ims,kms,jms,P_QV), moist(ims,kms,jms,P_QC), moist(ims,kms,jms,P_QI), &
         scalar(ims,kms,jms,P_QNDROP), f_qc, f_qi, chem,   &
         ccn1, ccn2, ccn3, ccn4, ccn5, ccn6, nsource,      &
+!lm
+        dryd_ct, &
+!lm
         qsrflx,                                           &
 		ids,ide, jds,jde, kds,kde,                        &
 		ims,ime, jms,jme, kms,kme,                        &
