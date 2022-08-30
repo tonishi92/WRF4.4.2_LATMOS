@@ -52,8 +52,10 @@ int contains_str( char *s1, char *s2 )
 int contains_tok( char *s1, char *s2, char *delims )
 {
   char *p ;
-  char tempstr[8092] ;
-
+  /* TO2 */
+  /* char tempstr[8092] ; */
+  char tempstr[9092] ;
+  /* TO2 */
   strcpy( tempstr , s1 ) ;
   p = strtok ( tempstr, delims ) ;
   while ( p != NULL )
