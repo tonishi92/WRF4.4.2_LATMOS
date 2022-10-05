@@ -1463,8 +1463,12 @@ CASE(GOCARTRACM_KPP,RACM_KPP,RACMPM_KPP,RACMSORG_KPP,RACM_MIM_KPP,RACM_ESRLSORG_
           do j=jts,jte
              do k=kts,kte
                 do i=its,ite
-                   chem(i,k,j,p_co2)=370.
-                   chem(i,k,j,p_ch4)=1.7
+!lm                   chem(i,k,j,p_co2)=370.
+!lm                   chem(i,k,j,p_ch4)=1.7
+!lm                    chem(i,k,j,p_co2)=370.
+                   chem(i,k,j,p_ch4)=1.893 !Blasing 2014, current GHG conc (mace head 2013 value)
+                   chem(i,k,j,p_co2)=395.4 !id
+!lm
                    if (p_pcg1_b_c.gt.1)        chem(i,k,j,p_pcg1_b_c)=0.00
                    if (p_pcg2_b_c.gt.1)        chem(i,k,j,p_pcg2_b_c)=0.00
                    if (p_pcg3_b_c.gt.1)        chem(i,k,j,p_pcg3_b_c)=0.00

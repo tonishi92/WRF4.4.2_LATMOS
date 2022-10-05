@@ -776,7 +776,9 @@
          do j=jps,jpe
             do k=kps,kpe
                do i=ips,ipe
-                  chem(i,k,j,p_ch4)=1.74
+                  !chem(i,k,j,p_ch4)=1.74
+                  chem(i,k,j,p_ch4)=1.893 !lm Blasing et al., 2014, recent GHG
+                                          !concentrations (used the 2013 value for Mace Head)
                enddo
             enddo
          enddo
