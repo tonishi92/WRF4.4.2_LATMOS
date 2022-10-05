@@ -645,6 +645,9 @@ CONTAINS
            config_flags%biomass_burn_opt == BIOMASSB_MOZ  .OR. &
            config_flags%biomass_burn_opt == BIOMASSB_SAPRC .OR. &
            config_flags%biomass_burn_opt == BIOMASSB_GHG  .OR. &
+!lm Add a biomass burning emissions package for CBMZ
+           config_flags%biomass_burn_opt == BIOMASSB_CBMZ .OR. &
+!lm
            config_flags%biomass_burn_opt == BIOMASSB ) then
         IF ( ktau==1 ) then
            do_plumerisefire = .true.
@@ -701,6 +704,9 @@ CONTAINS
 !
        call add_emis_burn(id,dtstep,ktau,dz8w,rho_phy,tracer,&
             julday,gmt,xlat,xlong,t_phy,p_phy,                           &
+!lm
+            alt, &
+!lm
             ebu,0,config_flags%tracer_opt,config_flags%biomass_burn_opt,     &
             num_tracer,ids,ide, jds,jde, kds,kde,                                   &
             ims,ime, jms,jme, kms,kme,                                   &
@@ -807,7 +813,10 @@ CONTAINS
 !!! ***********   FIRE AND CHEM ****************************************
 !
     fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
-     CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_MOZ,BIOMASSB_T1_MOZCART,BIOMASSB_GHG,BIOMASSB_SAPRC)
+!lm Add a biomass burning emission package for CBMZ
+!     CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_MOZ,BIOMASSB_T1_MOZCART,BIOMASSB_GHG,BIOMASSB_SAPRC)
+     CASE (BIOMASSB,BIOMASSB_CBMZ,BIOMASSB_MOZC,BIOMASSB_MOZ,BIOMASSB_T1_MOZCART,BIOMASSB_GHG,BIOMASSB_SAPRC)
+!lm
 !      if( do_plumerisefire )then
 !         CALL wrf_debug(15,'fire emissions: calling biomassb')
 !         write(0,*)ktau,stepfirepl
@@ -826,6 +835,9 @@ CONTAINS
        CALL wrf_debug(15,'fire emissions: adding biomassb emissions')
        call add_emis_burn(id,dtstep,ktau,dz8w,rho_phy,chem,&
             julday,gmt,xlat,xlong,t_phy,p_phy,                           &
+!lm 
+            alt, &
+!lm
             ebu,config_flags%chem_opt,0,config_flags%biomass_burn_opt,     &
             num_chem,ids,ide, jds,jde, kds,kde,                                   &
             ims,ime, jms,jme, kms,kme,                                   &
