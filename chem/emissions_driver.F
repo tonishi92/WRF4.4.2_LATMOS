@@ -1112,6 +1112,78 @@ CONTAINS
              end do
           end do
        end do
+!jcr
+   CASE (CHEM_TRACE2)
+       do j=jts,jte
+          do i=its,ite
+             do k=kts,min(config_flags%kemit,kte-ksub)
+                conv = 4.828e-4/rho_phy(i,k,j)*dtstep/(dz8w(i,k,j)*60.)
+                IF(emis_ant(i,k,j,p_e_no).eq.1.0)                        &
+                chem(i,k,j,p_tracer_1)  = chem(i,k,j,p_tracer_1)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.2.0)                        &
+                chem(i,k,j,p_tracer_2)  = chem(i,k,j,p_tracer_2)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.3.0)                        &
+                chem(i,k,j,p_tracer_3)  = chem(i,k,j,p_tracer_3)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.4.0)                        &
+                chem(i,k,j,p_tracer_4)  = chem(i,k,j,p_tracer_4)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.5.0)                        &
+                chem(i,k,j,p_tracer_5)  = chem(i,k,j,p_tracer_5)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.6.0)                        &
+                chem(i,k,j,p_tracer_6)  = chem(i,k,j,p_tracer_6)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.7.0)                        &
+                chem(i,k,j,p_tracer_7)  = chem(i,k,j,p_tracer_7)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.8.0)                        &
+                chem(i,k,j,p_tracer_8)  = chem(i,k,j,p_tracer_8)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.9.0)                        &
+                chem(i,k,j,p_tracer_9)  = chem(i,k,j,p_tracer_9)         &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.10.0)                       &
+                chem(i,k,j,p_tracer_10)  = chem(i,k,j,p_tracer_10)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.11.0)                       &
+                chem(i,k,j,p_tracer_11)  = chem(i,k,j,p_tracer_11)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.12.0)                       &
+                chem(i,k,j,p_tracer_12)  = chem(i,k,j,p_tracer_12)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.13.0)                       &
+                chem(i,k,j,p_tracer_13)  = chem(i,k,j,p_tracer_13)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.14.0)                       &
+                chem(i,k,j,p_tracer_14)  = chem(i,k,j,p_tracer_14)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.15.0)                       &
+                chem(i,k,j,p_tracer_15)  = chem(i,k,j,p_tracer_15)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.16.0)                       &
+                chem(i,k,j,p_tracer_16)  = chem(i,k,j,p_tracer_16)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.17.0)                       &
+                chem(i,k,j,p_tracer_17)  = chem(i,k,j,p_tracer_17)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.18.0)                       &
+                chem(i,k,j,p_tracer_18)  = chem(i,k,j,p_tracer_18)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.19.0)                       &
+                chem(i,k,j,p_tracer_19)  = chem(i,k,j,p_tracer_19)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                IF(emis_ant(i,k,j,p_e_no).eq.20.0)                       &
+                chem(i,k,j,p_tracer_20)  = chem(i,k,j,p_tracer_20)       &
+                     +emis_ant(i,k,j,p_e_co)*conv
+                chem(i,k,j,p_tracer_ens)  = chem(i,k,j,p_tracer_ens)     &
+                     +emis_ant(i,k,j,p_e_co)*conv
+             end do
+          end do
+       end do
+!jcr
 !
     CASE(CO2_TRACER,GHG_TRACER)  ! for ghg_tracer package
 
