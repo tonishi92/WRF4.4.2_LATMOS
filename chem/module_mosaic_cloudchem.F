@@ -330,8 +330,12 @@
 #endif
 
 	gas_aqfrac_box(:) = 0.0
-
-
+!TO2
+    if (isnan(ph_cmuaq_cur)) then
+      ph_cmuaq_cur = 0.0
+    endif
+!    write(*,*) 'before interface_to_aqoperator1, ph_cmuaq_cur = ',ph_cmuaq_cur
+!TO2
 !   make call to interface_to_aqoperator1
 	call interface_to_aqoperator1(   &
 	    istat_aqop,   &
@@ -705,6 +709,7 @@
 	xprescribe_ph_dp = 0.0d0
 	if (xprescribe_ph .ne. 0.0) xprescribe_ph_dp = xprescribe_ph
 	ph_cmuaq_cur_dp = 0.0d0
+!        write(*,*) 'ph_cmuaq_cur = ',ph_cmuaq_cur
 	if (ph_cmuaq_cur .ne. 0.0) ph_cmuaq_cur_dp = ph_cmuaq_cur
 
 	do i = 1, ngas
