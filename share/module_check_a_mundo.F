@@ -273,7 +273,7 @@
                                 model_config_rec % max_dom, factor )
          model_config_rec % dx(i) = model_config_rec % dx(1) / REAL(factor)
          model_config_rec % dy(i) = model_config_rec % dy(1) / REAL(factor)
-         WRITE(wrf_err_message,FMT='(A,I2,A,F9.3,A)') 'Domain #',i,': dx = ',model_config_rec % dx(i),' m'
+         WRITE(wrf_err_message,FMT='(A,I2,A,F15.3,A)') 'Domain #',i,': dx = ',model_config_rec % dx(i),' m'
          CALL wrf_debug ( 0, wrf_err_message )
       END DO
 
