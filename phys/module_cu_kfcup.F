@@ -4929,9 +4929,23 @@ SUBROUTINE cupSlopeSigma(dx, psfc, p, rho, dz8w, z, ht,                 &
    kpblmid = max(kts,kpbl/2)
    flux  = (1. + EP_1*qv_curr(1))*hfx/rho(1)/cp + &
            EP_1*th(1)*qfx/rho(1)  !badbad/xlv
+
+
+   !TO2
+   if(flux .le. 0.0) then
+     if(EP_1*th(1)*qfx/rho(1).lt.0.0) then
+       write(*,*) 'checking 005a ', flux,EP_1*th(1)*qfx/rho(1), EP_1, th(1), qfx, rho(1) 
+     !                              -3.4212158E-04 -1.5452679E-03  0.6083624       298.0391, -9.7707298E-06   1.146460
+     endif 
+     write(*,*) 'checking 005b : negative flux : abs(flux) will be used to calculate wStar ' 
+   endif
+   !TO2
    tvcon = 1.+EP_1*qv_curr(kpblmid)
    thv   = th(kpblmid)*tvcon
-   wStar = (g*pblh*flux/thv)**(1./3.)
+   !TO2 wStar is a scale (must be a positive value)
+   !wStar = (g*pblh*flux/thv)**(1./3.)
+   wStar = (g*pblh*abs(flux)/thv)**(1./3.)
+   !TO2
       !!write(*,*) 'Larry ... wStar', wStar, pblh, flux, thv
    ! Calculate the slope (dTemp/dMixRatio) for the surface layer
    ! and entrainment zone...
@@ -4957,6 +4971,10 @@ SUBROUTINE cupSlopeSigma(dx, psfc, p, rho, dz8w, z, ht,                 &
    ! eqs. 17a and 17b. For sigmaSfc, we currently are only using
    ! rstar and not rstarNew.
    ! For sigmaEZ, reuse the flux var that contains (w'thetav')bar
+
+   !TO2 to avoid divide by zero, otherwise sigma** = 0.0 as initialized above  
+   if( wStar .ne. 0.0 ) then
+   !TO2 end
    sigmaEz = flux/wStar* &
         ( 2. + (8.2e-4)* &
         (zagl(kpblmid)/pblh)**(-1.8) )  ! Changed by lkb, 1/21/09 to use kpblmid
@@ -4967,7 +4985,11 @@ SUBROUTINE cupSlopeSigma(dx, psfc, p, rho, dz8w, z, ht,                 &
 !!$                ( 2.3 + 1.1e-2*(zagl(1)/pblh(i,j))**(-1.6) )
    sigmaSfc = flux/wStar * &
         ( 2.3 + 1.1e-2*(zagl(kpblmid)/pblh)**(-1.6) )
-
+   !TO2
+   else
+     write(*,*) 'checking 005c : zero wStar  ' 
+   endif !if( wStar .ne. 0.0 )
+   !TO2 end
 #if 0
    !
    ! Output the inputs to CuP for debugging with offline code...
