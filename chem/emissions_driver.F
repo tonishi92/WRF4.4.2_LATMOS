@@ -1483,7 +1483,9 @@ CONTAINS
        if ( config_flags%biomass_burn_opt == BIOMASSB_SAPRC ) then
          do j=jts,jte
            do i=its,ite
-             do k=kts,kte
+!to2             do k=kts,kte
+             do k=kts,min(config_flags%kemit,kte-ksub)
+!to2
                ! Use OM/OC of 1.25 for fossil and OM:OC of 1.57 for biomass
                ! O:C=0.06,H:C=1.8, N:C=0.02 for fossil : OM/OC=(16*0.06+12+14*0.02+12)/12=1.25
                ! O:C=0.3 H:C=1.8, N:C=0.02 for biomass, OM/OC=1.57 for biomass
