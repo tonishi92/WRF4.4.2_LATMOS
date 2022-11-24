@@ -515,6 +515,11 @@ CONTAINS
           swd24 = mswdown (i,j,previous_month) ! [=] W/m2
 
           !...Perform checks on max and min bounds for temperature
+          IF (tsa24 .LT. 200.0) THEN
+             WRITE (mesg,'("temperature too low at i=",i3," ,j=",i3 )')i,j
+             CALL wrf_message(mesg)
+             if(tsa .ne. 0.0 .and. tsa24.eq.0.0) tsa24 = tsa
+          END IF
           IF (tsa .LT. 200.0) THEN
              WRITE (mesg,'("temperature too low at i=",i3," ,j=",i3 )')i,j
              CALL wrf_message(mesg)
