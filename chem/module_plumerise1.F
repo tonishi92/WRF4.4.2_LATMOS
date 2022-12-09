@@ -250,15 +250,6 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &
                ebu(its:ite,kts,j,p_ebu_bc)       = ebu_in(its:ite,1,j,p_ebu_in_bc)
 !            enddo
          enddo
-!--lm
-       elseif ( config_flags%biomass_burn_opt == BIOMASSB_GHG ) then
-         do j=jts,jte
-            do i=its,ite
-               ebu(i,kts,j,p_ebu_co)  = ebu_in(i,1,j,p_ebu_in_co)
-               ebu(i,kts,j,p_ebu_co2) = ebu_in(i,1,j,p_ebu_in_co2)
-               ebu(i,kts,j,p_ebu_ch4) = ebu_in(i,1,j,p_ebu_in_ch4)
-            enddo
-          enddo
 !lm Add a biomass burning emission package for CBMZ
        elseif ( config_flags%biomass_burn_opt == BIOMASSB_CBMZ ) then
          do j=jts,jte
@@ -315,6 +306,15 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &
 !           enddo
          enddo
 !lm
+!--lm
+       elseif ( config_flags%biomass_burn_opt == BIOMASSB_GHG ) then
+         do j=jts,jte
+            do i=its,ite
+               ebu(i,kts,j,p_ebu_co)  = ebu_in(i,1,j,p_ebu_in_co)
+               ebu(i,kts,j,p_ebu_co2) = ebu_in(i,1,j,p_ebu_in_co2)
+               ebu(i,kts,j,p_ebu_ch4) = ebu_in(i,1,j,p_ebu_in_ch4)
+            enddo
+          enddo
        endif
 !
        do nv=1,num_ebu
