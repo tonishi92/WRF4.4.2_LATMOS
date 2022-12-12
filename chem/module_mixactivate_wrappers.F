@@ -114,14 +114,14 @@ CONTAINS
 		z, dz8w, p_at_w, t_at_w, exch_h
 
 	real, intent(inout),   &
-		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
+		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
 
 	real, intent(in),   &
 		dimension( its:ite, jts:jte, num_chem ) :: ddvel
 
 	real, intent(in),   &
 		dimension( ims:ime, kms:kme, jms:jme ) :: &
-		qv, qc, qi
+		qv, qc, qi, cldfra
 
     LOGICAL, intent(in) :: f_qc, f_qi
 
@@ -495,14 +495,14 @@ CONTAINS
 		z, dz8w, p_at_w, t_at_w, exch_h
 
 	real, intent(inout),   &
-		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
+		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
 
 	real, intent(in),   &
 		dimension( its:ite, jts:jte, num_chem ) :: ddvel
 
 	real, intent(in),   &
 		dimension( ims:ime, kms:kme, jms:jme ) :: &
-		qv, qc, qi
+		qv, qc, qi, cldfra
 
     LOGICAL, intent(in) :: f_qc, f_qi
 
@@ -601,14 +601,14 @@ CONTAINS
                 z, dz8w, p_at_w, t_at_w, exch_h
 
         real, intent(inout),   &
-                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
+                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
 
         real, intent(in),   &
                 dimension( its:ite, jts:jte, num_chem ) :: ddvel
 
         real, intent(in),   &
                 dimension( ims:ime, kms:kme, jms:jme ) :: &
-                qv, qc, qi
+                qv, qc, qi, cldfra
 
     LOGICAL, intent(in) :: f_qc, f_qi
 
@@ -704,14 +704,14 @@ CONTAINS
                 z, dz8w, p_at_w, t_at_w, exch_h
 
         real, intent(inout),   &
-                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
+                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
 
         real, intent(in),   &
                 dimension( its:ite, jts:jte, num_chem ) :: ddvel
 
         real, intent(in),   &
                 dimension( ims:ime, kms:kme, jms:jme ) :: &
-                qv, qc, qi
+                qv, qc, qi, cldfra
 
     LOGICAL, intent(in) :: f_qc, f_qi
 
