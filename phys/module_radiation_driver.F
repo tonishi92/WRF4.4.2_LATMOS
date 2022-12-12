@@ -78,6 +78,7 @@ CONTAINS
               ,cubot,cutop,cldfra_cup                                     &
               ,shall                                                      &
               !BSINGH - ENDS
+              ,clt                                                        &
             ! indexes
               ,IDS,IDE, JDS,JDE, KDS,KDE                                  &
               ,IMS,IME, JMS,JME, KMS,KME                                  &
@@ -702,6 +703,7 @@ CONTAINS
                                                            shall    !CuP, wig 4-Feb-2008
    !BSINGH -ENDS
 
+   REAL, DIMENSION(ims:ime,jms:jme), INTENT(INOUT) :: clt
 
    INTEGER, INTENT(IN   )  ::   julyr
 !
@@ -1227,6 +1229,8 @@ CONTAINS
    REAL    ::    cldji,cldlji
 !ckay
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ) ::    cldfra_cu
+! Vertical dimension for total cloud fraction calculation
+   INTEGER :: dimz
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ) ::    o3rad_0
    INTEGER :: no_aer_ra_feedback
 !------------------------------------------------------------------
@@ -4390,6 +4394,16 @@ CONTAINS
     END DO
  END IF
 
+   IF ( PRESENT(CLDFRA) ) THEN
+     ! Calculate total cloud fraction clt by max-random overlap
+     dimz = kme - kms + 1
+     DO j = jts,jte
+       DO i = its,ite
+         CALL var_clt(cldfra(i,:,j), dimz, clt(i,j))
+       ENDDO
+     ENDDO
+   ENDIF
+
    END SUBROUTINE radiation_driver
 
    SUBROUTINE pre_radiation_driver ( grid, config_flags                   &
@@ -6727,6 +6741,35 @@ END SUBROUTINE aer_p_int
       END DO
 
       END SUBROUTINE gt_aod
+
+!+---+-----------------------------------------------------------------+
+
+      SUBROUTINE var_clt(clfra, dz, clt)
+        ! Compute the total cloud following 'newmicro' from LMDZ using 1D
+        ! vertical column values
+        ! Adapted from Lluís Fita, https://doi.org/10.5194/gmd-12-1029-2019
+
+        IMPLICIT NONE
+
+        INTEGER, INTENT(IN)                                  :: dz
+        REAL, DIMENSION(dz), INTENT(IN)                      :: clfra
+        REAL, INTENT(OUT)                                    :: clt
+        ! Local
+        REAL                                                 :: zclear, zcloud, dclt
+        INTEGER                                              :: iz
+        REAL, PARAMETER                                      :: ZEPSEC = 1.0E-12
+
+        ! Calculate 1-column cloud fraction value
+        zclear = 1.0
+        zcloud = 0.0
+        DO iz=1,dz
+          zclear = zclear * (1.0-MAX(clfra(iz),zcloud)) / (1.0-MIN(zcloud,1.0-ZEPSEC))
+          dclt = 1.0 - zclear
+          zcloud = clfra(iz)
+        END DO
+        clt = dclt
+
+      END SUBROUTINE var_clt
 
 !+---+-----------------------------------------------------------------+
 
