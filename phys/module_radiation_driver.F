@@ -6863,7 +6863,11 @@ END SUBROUTINE aer_p_int
         zclear = 1.0
         zcloud = 0.0
         DO iz=1,dz
-          zclear = zclear * (1.0-MAX(clfra(iz),zcloud)) / (1.0-MIN(zcloud,1.0-ZEPSEC))
+          if(max(clfra(iz),zcloud).ne.1.0) then
+            zclear = zclear * (1.0-MAX(clfra(iz),zcloud)) / (1.0-MIN(zcloud,1.0-ZEPSEC))
+          else
+            zclear = 0.0
+          endif
           dclt = 1.0 - zclear
           zcloud = clfra(iz)
         END DO
