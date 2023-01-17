@@ -99,7 +99,7 @@ CONTAINS
               , RE_HAIL_GSFC                                              &
               , COD2D_OUT                                                 &
               , CTOP2D_OUT                                                &
-              , CLDFRA,CLDFRA_MP_ALL,CLDT,ZNU                             &
+              , CLDFRA,CLDFRA_MP_ALL,CLDFRA_LS,CLDT,ZNU                   &
               , CCLDFRA, QCCONV, QICONV                                   &
               , bmj_rad_feedback                                          &
 #if (EM_CORE == 1)
@@ -562,6 +562,7 @@ CONTAINS
 !-- CLDFRA_DP     cloud fraction from deep cloud in a cumulus scheme
 !-- CLDFRA_SH     cloud fraction from shallow cloud in a cumulus scheme
 !-- CLDFRA_MP_ALL cloud fraction from CAMMGMP microphysics scheme
+!-- CLDFRA_LS     cloud fraction from large scale microphysics scheme
 !-- CCLDFRA       convective cloud fraction (between 0 and 1)
 !-- EMISS         surface emissivity (between 0 and 1)
 !-- rho_phy       density (kg/m^3)
@@ -1095,6 +1096,11 @@ CONTAINS
                                                          F_RAIN_PHY, &
                                                       CLDFRA_MP_ALL
 
+   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                     &
+         OPTIONAL,                                                   &
+         INTENT(INOUT) ::                                            &
+                                                          CLDFRA_LS
+
 #if (EM_CORE == 1)
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                     &
          OPTIONAL,                                                   &
@@ -1584,6 +1590,7 @@ CONTAINS
      DO k=kts,kte
      DO i=its,ite
         CLDFRA(i,k,j) = 0.
+        IF(PRESENT(CLDFRA_LS)) CLDFRA_LS(i,k,j) = 0.
      END DO
      END DO
      END DO
@@ -1603,6 +1610,15 @@ CONTAINS
                    ids,ide, jds,jde, kds,kde,              &
                    ims,ime, jms,jme, kms,kme,              &
                    its,ite, jts,jte, kts,kte               )
+        IF(PRESENT(CLDFRA_LS)) THEN
+          CALL cal_cldfra1(CLDFRA_LS,qv,qc_save,qi_save,qs_save,  &
+                     F_QV,F_QC,F_QI,F_QS,t,p,                &
+                     F_ICE_PHY,F_RAIN_PHY,                   &
+                     mp_physics,cldfra1_flag,                &
+                     ids,ide, jds,jde, kds,kde,              &
+                     ims,ime, jms,jme, kms,kme,              &
+                     its,ite, jts,jte, kts,kte               )
+        ENDIF
         IF ( PRESENT ( CLDFRA_DP ) ) THEN
 ! this is for Kain-Fritsch schemes
           IF ( icloud_cu .EQ. 2 .OR. aercu_opt .GT. 0 ) THEN
@@ -1726,6 +1742,12 @@ CONTAINS
                        ids,ide, jds,jde, kds,kde,            &
                        ims,ime, jms,jme, kms,kme,            &
                        its,ite, jts,jte, kts,kte             )
+       IF(PRESENT(CLDFRA_LS)) THEN
+         CALL cal_cldfra2(CLDFRA_LS,qc_save,qi_save,F_QC,F_QI, &
+                         ids,ide, jds,jde, kds,kde,            &
+                         ims,ime, jms,jme, kms,kme,            &
+                         its,ite, jts,jte, kts,kte             )
+       END IF
      ENDIF
 
 !+---+-----------------------------------------------------------------+
@@ -1768,6 +1790,9 @@ CONTAINS
                 qi(i,k,j) = qi_1d(k)
                 qs(i,k,j) = qs_1d(k)
                 cldfra(i,k,j) = cf_1d(k)
+                IF(PRESENT(CLDFRA_LS)) THEN
+                  cldfra_ls(i,k,j) = cf_1d(k)
+                END IF
              ENDDO
 
            ENDDO
@@ -1784,6 +1809,13 @@ CONTAINS
                             ids,ide, jds,jde, kds,kde,                               &
                             ims,ime, jms,jme, kms,kme,                               &
                             its,ite, jts,jte, kts,kte)
+           IF(PRESENT(CLDFRA_LS)) THEN
+             CALL cal_cldfra4(cldfra_ls, qv, qc_save, qi_save,             &
+                              qc_cu, qi_cu, p, t, rho, icloud_cu,          &
+                              ids,ide, jds,jde, kds,kde,                   &
+                              ims,ime, jms,jme, kms,kme,                   &
+                              its,ite, jts,jte, kts,kte)
+           END IF
         ELSE
            CALL wrf_error_fatal('Can not use icloud = 4 option, missing QC or QI field.')
         ENDIF
