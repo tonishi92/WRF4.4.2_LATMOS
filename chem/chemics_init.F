@@ -64,6 +64,9 @@
 
    USE module_ftuv_driver, only : ftuv_init
    USE module_phot_tuv,    only : tuv_init
+!lm Update dependencies
+   USE module_phot_fastj, only: fastj_landinit
+!lm
    USE module_mozcart_wetscav, only : wetscav_mozcart_init
    USE module_aerosols_sorgam
    USE module_aerosols_soa_vbs, only: aerosols_soa_vbs_init
@@ -809,6 +812,13 @@ end if
 
         call ftuv_init( id, its, ite, jts, jte, kte, &
                   ide, jde, config_flags,config_flags%num_land_cat,mminlu_loc )
+
+!lm Add an initialization routine for fastj photolysis, in order to use varying
+!surface albedo
+      CASE (PHOTFASTJ)
+        CALL wrf_debug(00,'call fastj phot initialization')
+        call fastj_landinit( id, config_flags%num_land_cat,mminlu_loc )
+!lm
      CASE (TUV)
        if( config_flags%cld_od_opt > 3 .or. config_flags%cld_od_opt < 1 ) then
          call wrf_error_fatal("cld_od_opt must be {1,2,3}")

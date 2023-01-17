@@ -1,5 +1,7 @@
 !WRF:MODEL_LAYER:CHEMISTRY
 !
+!lm Louis Marelle 2016/5/11: In Fast-J photolysis, use a higher surface
+!   UV-albedo over snow- and ice-covered surfaces.
       SUBROUTINE photolysis_driver (id,curr_secs,ktau,dtstep,            &
                config_flags,haveaer,                                     &
                dt_cld,af_dir,af_dn,af_up,par,erythema,                   &
@@ -23,6 +25,10 @@
                nref0, nw0, tuv_jmax0,                                    &
                ph_radfld, ph_adjcoe, ph_prate,                           &
                wc, zref,                                                 &
+!lm Add snow height, snow cover and ice fraction to photolysis in order to
+!   calculate snow- and ice-dependent UV albedos in Fast-J
+               snowh, snowc, xice, lu_index,                                       &
+!lm
                tauaer1,tauaer2,tauaer3,tauaer4,                          &
                gaer1,gaer2,gaer3,gaer4,                                  &
                waer1,waer2,waer3,waer4,                                  &
@@ -134,6 +140,11 @@
           INTENT(IN   ) ::                                             &
                                                      xlat,             &
                                                      xlong
+!lm Add snow height, snow cover and ice fraction to photolysis in order to
+!   calculate snow- and ice-dependent UV albedos in Fast-J
+   REAL,  DIMENSION( ims:ime , jms:jme )                   ,           &
+          INTENT(IN   ) ::     snowh, snowc, xice, lu_index
+!lm
    TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
 
    LOGICAL, INTENT(IN)  :: haveaer
@@ -173,6 +184,7 @@
                ims,ime, jms,jme, kms,kme,                              &
                its,ite, jts,jte, kts,kte                               )
      CASE (PHOTFASTJ)
+! jdf add ivgtyp for mexico city
        call wrf_debug(15,'calling fastj_driver')
        call fastj_driver(id,curr_secs,dtstep,config_flags,             &
                gmt,julday,t_phy,moist,p8w,p_phy,                       &
@@ -182,6 +194,11 @@
                ph_ch3coch3,ph_ch3coc2h5,ph_hcocho,ph_ch3cocho,         &
                ph_hcochest,ph_ch3o2h,ph_ch3coo2h,ph_ch3ono2,ph_hcochob,&
                ph_n2o5,                                                &
+               ivgtyp,                                                 &
+!lm Add land cover type, snow height, snow cover and ice fraction to photolysis
+!   in order to calculate snow- and ice-dependent UV albedos in Fast-J
+               snowh, snowc, xice,                                     &
+!lm
                tauaer1,tauaer2,tauaer3,tauaer4,                        &
                gaer1,gaer2,gaer3,gaer4,                                &
                waer1,waer2,waer3,waer4,                                &
@@ -197,6 +214,7 @@
                               p_phy, t_phy, rho_phy, p8w, t8w,         &
                               xlat, xlong,    z_at_w,                  &
                               moist, chem, gd_cloud,gd_cloud2,         &
+                              xice, snowc, snowh,                      &
                               ph_no2,ph_o31d,ph_o33p,ph_hno2,          &
                               ph_hno3,ph_hno4,ph_no3o2,ph_no3o,        &
                               ph_h2o2,ph_ch2om,ph_ch2or,ph_ch3cho,     &
@@ -226,6 +244,7 @@
                gmt, julday, t_phy, moist, aerwrf,                      &
                p8w, t8w, p_phy, chem, rho_phy,                         &
                dz8w, xlat, xlong, z, z_at_w, gd_cloud, gd_cloud2,      &
+               xice, snowc, snowh,                                     &
                bl_cld,bl_cld2,                                         &
                tauaer1,tauaer2,tauaer3,tauaer4,                        &
                gaer1,gaer2,gaer3,gaer4,                                &

@@ -905,7 +905,15 @@ SUBROUTINE MP_MORR_TWO_MOMENT(ITIMESTEP,                       &
       SNOWNCV(i,j) = SNOWPRT1D
       GRAUPELNC(i,j) = GRAUPELNC(I,J)+GRPLPRT1D
       GRAUPELNCV(i,j) = GRPLPRT1D
-      SR(i,j) = SNOWRT1D/(PRECPRT1D+1.E-12)
+!lm      SR(i,j) = SNOWRT1D/(PRECPRT1D+1.E-12)
+!lm The calculation of SR often gives results out of the 0-1 range (when prec
+!quantities are small). Due to another problem in noahlsm this can cause bugs in
+!the snow cover and snow height calcs. I'm fixing the bugs here and in NOAHLSM
+!Ideally, the code should not calculate SR when SNOWRT1D is too small. I'm also
+!still not sure if this is not related to another bug leading to negative
+!SNOWRT1D
+      SR(i,j) = min(1.,max(0.,SNOWRT1D/(PRECPRT1D+1.E-12)))
+!lm
 
 !+---+-----------------------------------------------------------------+
          IF ( PRESENT (diagflag) ) THEN

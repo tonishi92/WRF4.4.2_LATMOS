@@ -332,15 +332,16 @@ contains
           ! SR from e.g. Ferrier microphysics
           ! otherwise define from 1st atmos level temperature
 
-          IF (FRPCPN) THEN
-             FFROZP = SR(I,J)
-          ELSE
+!lm see in surface_driver why I commented this          IF (FRPCPN) THEN
+!          IF (FRPCPN) THEN
+!             FFROZP = SR(I,J)
+!          ELSE
              IF (SFCTMP <=  273.15) THEN
                 FFROZP = 1.0
              ELSE
                 FFROZP = 0.0
              ENDIF
-          ENDIF
+!          ENDIF
 
           ! Sea-ice point has deep-level temperature of about -1.8 C
           TBOT = 271.36

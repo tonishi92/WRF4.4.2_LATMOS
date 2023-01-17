@@ -849,15 +849,15 @@ CONTAINS
 ! if "SR" present, set frac of frozen precip ("FFROZP") = snow-ratio ("SR", range:0-1)
 ! SR from e.g. Ferrier microphysics
 ! otherwise define from 1st atmos level temperature
-       IF(FRPCPN) THEN
-          FFROZP=SR(I,J)
-        ELSE
+!lm       IF(FRPCPN) THEN
+!lm comment this, see surface driver          FFROZP=SR(I,J)
+!lm        ELSE
           IF (SFCTMP <=  273.15) THEN
             FFROZP = 1.0
 	  ELSE
 	    FFROZP = 0.0
 	  ENDIF
-        ENDIF
+!lm        ENDIF
 !***
         IF((XLAND(I,J)-1.5).GE.0.)THEN                                  ! begining of land/sea if block
 ! Open water points
@@ -5246,7 +5246,6 @@ SUBROUTINE lsm_mosaic(DZ8W,QV3D,P8W3D,T3D,TSK,                      &
 
           ENDDO
       ENDDO
-      
   !===========================================================================   
   ! initilize the variables
   !===========================================================================   

@@ -2593,9 +2593,15 @@ CONTAINS
 !          PRESENT(frc_urb2d) .AND. PRESENT(utype_urb2d)   .AND.      &
                                                       .TRUE. ) THEN
 !------------------------------------------------------------------
-         IF( PRESENT(sr) ) THEN
-           frpcpn=.true.
-         ENDIF
+
+!lm Comment this, as this can cause two problems: some of the SR values seem
+!wrong (this is probably an issue with the Morrison microphysics) and SR is 0
+!over most of the domain (no grid scale precip). This means that SR can
+!possibly prevent the cumulus precipitation to ever be considered as snow 
+!(check this)
+!lm         IF( PRESENT(sr) ) THEN
+!lm           frpcpn=.true.
+!lm         ENDIF
          IF ( FRACTIONAL_SEAICE == 1) THEN
             ! The fields passed to LSM need to represent the full ice values, not
             ! the fractional values.  Convert ALBEDO and EMISS from the blended value 
