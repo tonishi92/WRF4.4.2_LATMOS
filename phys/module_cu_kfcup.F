@@ -2922,6 +2922,34 @@ iter:     DO NCOUNT=1,10
                        DTIME*EMSD(NK)
               QPA(NK)=QPA(NK)+(QFXIN(NK)+UDR(NK)*QDT(NK)+DDR(NK)*QD(NK)-    &
                       QFXOUT(NK)-(UER(NK)-DER(NK))*Q0(NK))*DTIME*EMSD(NK)
+!TO2
+              if(NK.eq.1) then
+                !print *, ''
+                !print *,'QPA(NK)=QPA(NK)+(QFXIN(NK)+UDR(NK)*QDT(NK)+DDR(NK)*QD(NK)- '
+                !print *,'        QFXOUT(NK)-(UER(NK)-DER(NK))*Q0(NK))*DTIME*EMSD(NK)'
+                !print *, 'QPA(NK) after            = ',QPA(NK)                 
+                !print *, 'QFXIN(NK)                *(DTIME*EMSD(NK))=',  QFXIN(NK)*(DTIME*EMSD(NK))
+                !print *, 'UDR(NK)*QDT(NK)          *(DTIME*EMSD(NK))=',  UDR(NK)*QDT(NK)*(DTIME*EMSD(NK))
+                !print *, 'UDR(NK)                  *(DTIME*EMSD(NK))=',  UDR(NK)        *(DTIME*EMSD(NK))
+                !print *, '        QDT(NK)          *(DTIME*EMSD(NK))=',          QDT(NK)*(DTIME*EMSD(NK))
+                !print *, 'DDR(NK)*QD(NK)           *(DTIME*EMSD(NK))=',  DDR(NK)*QD(NK)*(DTIME*EMSD(NK))
+                !print *, 'DDR(NK)                  *(DTIME*EMSD(NK))=',  DDR(NK)       *(DTIME*EMSD(NK))
+                !print *, '        QD(NK)           *(DTIME*EMSD(NK))=',          QD(NK)*(DTIME*EMSD(NK))
+                !print *, '-QFXOUT(NK)              *(DTIME*EMSD(NK))=',  -QFXOUT(NK)*(DTIME*EMSD(NK))
+                !print *, '-(UER(NK)-DER(NK))*Q0(NK)*(DTIME*EMSD(NK))=',  -(UER(NK)-DER(NK))*Q0(NK)*(DTIME*EMSD(NK))
+                !print *, '-(UER(NK)-DER(NK))       *(DTIME*EMSD(NK))=',  -(UER(NK)-DER(NK))       *(DTIME*EMSD(NK))
+                !print *, '                   Q0(NK)*(DTIME*EMSD(NK))=',                     Q0(NK)*(DTIME*EMSD(NK))
+                !print *, '-(UER(NK)        )*Q0(NK)*(DTIME*EMSD(NK))=',  -(UER(NK)        )*Q0(NK)*(DTIME*EMSD(NK))
+                !print *, '-(       -DER(NK))*Q0(NK)*(DTIME*EMSD(NK))=',  -(       -DER(NK))*Q0(NK)*(DTIME*EMSD(NK))
+                !print *, '                           DTIME*EMSD(NK) =',  DTIME*EMSD(NK)
+                !print *, UER(NK),-DER(NK),Q0(NK)
+                !print *, ''
+                if(QPA(NK).LT.1.e-6) THEN
+                  print *, 'QPA(NK).LT.1.e-6' 
+                  QPA(NK) = max(1.e-6,QPA(NK))
+                endif
+              endif
+!TO2
             ENDDO   
           ENDDO   
           DO NK=1,LTOP
@@ -3711,8 +3739,19 @@ iter:     DO NCOUNT=1,10
       ithtb=int(tth)+1
        IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
          write(98,*)'**** OUT OF BOUNDS *********'
+         write(98,*) IPTB, ITHTB, p, plutop, thes, bth
 !        flush(98)
        ENDIF
+!TO2
+      IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
+        write(*,*) '**** OUT OF BOUNDS ********** IPTB and ITHTB'
+        IPTB = max(1,iptb)
+        IPTB = min(219,iptb)
+        ithtb = max(1,ithtb)
+        ithtb = min(249,ithtb)
+      ENDIF
+!TO2
+      
 !
       t00=ttab(ithtb  ,iptb  )
       t10=ttab(ithtb+1,iptb  )
@@ -3995,7 +4034,15 @@ iter:     DO NCOUNT=1,10
       tth=(thes-bth)*rdthk
       pp   =tth-aint(tth)
       ithtb=int(tth)+1
-!
+!TO2
+      IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
+        write(*,*) '**** OUT OF BOUNDS ********** IPTB and ITHTB'
+        IPTB = max(1,iptb)
+        IPTB = min(219,iptb)
+        ithtb = max(1,ithtb)
+        ithtb = min(249,ithtb)
+      ENDIF
+!TO2
       t00=ttab(ithtb  ,iptb  )
       t10=ttab(ithtb+1,iptb  )
       t01=ttab(ithtb  ,iptb+1)
