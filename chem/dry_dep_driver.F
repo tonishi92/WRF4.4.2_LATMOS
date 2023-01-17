@@ -45,6 +45,9 @@ CONTAINS
   USE module_aerosols_sorgam
   USE module_gocart_settling
   USE module_vash_settling
+!lm Add a module for aerosol sedimentation aloft in MOSAIC
+  USE module_mosaic_settling
+!lm
   USE module_gocart_drydep
   USE module_mosaic_drydep, only:  mosaic_drydep_driver
   USE module_mixactivate_wrappers, only: mosaic_mixactivate, sorgam_mixactivate, &
@@ -1392,6 +1395,32 @@ CONTAINS
          ids,ide, jds,jde, kds,kde,                                        &
          ims,ime, jms,jme, kms,kme,                                        &
          its,ite, jts,jte, kts,kte                                         )
+!lm New sedimentation option for MOSAIC
+   CASE (CBMZ_MOSAIC_4BIN, CBMZ_MOSAIC_KPP, CBMZ_MOSAIC_8BIN_VBS9_KPP, &
+         CBMZ_MOSAIC_8BIN,CBMZ_MOSAIC_4BIN_AQ, CBMZ_MOSAIC_8BIN_AQ, &
+         CBMZ_MOSAIC_4BIN_VBS2_KPP, &
+         MOZART_MOSAIC_4BIN_KPP,    &      !TO
+         !MOZART_MOSAIC_4BIN_VBS0_KPP, &   !TO
+         CBMZ_MOSAIC_4BIN_VBS9_KPP, &
+         CBMZ_MOSAIC_DMS_4BIN, &
+         CBMZ_MOSAIC_DMS_8BIN, &
+         CBMZ_MOSAIC_DMS_4BIN_AQ, &
+         CBMZ_MOSAIC_DMS_8BIN_AQ, &
+         CRI_MOSAIC_8BIN_AQ_KPP, &
+         CRI_MOSAIC_4BIN_AQ_KPP, &
+         SAPRC99_MOSAIC_4BIN_VBS2_KPP, &
+         SAPRC99_MOSAIC_4BIN_VBS9_KPP, &
+         SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP, &
+         SAPRC99_MOSAIC_8BIN_VBS2_KPP)
+   if(config_flags%aer_settling_opt==1) then
+       CALL wrf_debug(15,'call mosaic settling routine')
+         call mosaic_settling_driver(                                   &
+         t_phy, rho_phy, dz8w, chem, dtstep,                            &
+         ids,ide, jds,jde, kds,kde,                                     &
+         ims,ime, jms,jme, kms,kme,                                     &
+         its,ite, jts,jte, kts,kte                                      )
+   endif
+!lm
    CASE DEFAULT
        CALL wrf_debug(15,'no settling routine')
    END SELECT settling_select
