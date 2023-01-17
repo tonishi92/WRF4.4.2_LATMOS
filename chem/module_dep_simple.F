@@ -74,6 +74,9 @@ SUBROUTINE wesely_driver( id, ktau, dtstep, config_flags, current_month,  &
                           aer_res_zcen, ivgtyp, tsk, gsw, vegfra, pbl,    &
                           rmol, ust, znt, xlat, xlong,                    &
                           z, z_at_w, snowh, numgas,                       &
+!lm Add a case for deposition over ice in CBMZ-MOSAIC and SAPRC-MOSAIC mechanisms
+                          xice,                                           &
+!lm
                           ids,ide, jds,jde, kds,kde,                      &
                           ims,ime, jms,jme, kms,kme,                      &
                           its,ite, jts,jte, kts,kte                       )
@@ -138,6 +141,11 @@ SUBROUTINE wesely_driver( id, ktau, dtstep, config_flags, current_month,  &
    REAL, intent(inout) ::                            aer_res_def(its:ite,jts:jte)
    REAL, intent(inout) ::                            aer_res_zcen(its:ite,jts:jte)
    REAL,  optional, INTENT(IN)  ::                   snowh(ims:ime,jms:jme)
+!lm Add a case for deposition over ice in CBMZ-MOSAIC and SAPRC-MOSAIC
+!mechanisms
+   REAL,  DIMENSION( ims:ime , jms:jme ), INTENT(IN   ) :: xice
+!lm
+
    TYPE(grid_config_rec_type),  INTENT(IN) ::        config_flags
 
 !--------------------------------------------------

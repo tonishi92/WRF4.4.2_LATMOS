@@ -1260,7 +1260,7 @@
             call wrf_debug(15,'calling dry_deposition_driver')
             call dry_dep_driver(grid%id,curr_secs,ktau,grid%dt,config_flags,          &
                  grid%gmt,ijulian,t_phy,moist,scalar,p8w,t8w,vvel,                &
-                 rri,p_phy,chem,tracer,rho,dz8w,rh,grid%exch_h,grid%hfx,grid%dx,      & 
+                 rri,p_phy,grid%snowc,chem,tracer,rho,dz8w,rh,grid%exch_h,grid%hfx,grid%dx,      & 
                  grid%cldfra, grid%cldfra_old,grid%raincv_b,seasin,dustin,            &
 	         grid%ccn1, grid%ccn2, grid%ccn3, grid%ccn4, grid%ccn5, grid%ccn6,    &
                  grid%qndropsource,grid%ivgtyp,grid%tsk,grid%gsw,grid%vegfra,pbl_h,   &
@@ -1281,7 +1281,7 @@
                  grid%setvel_5, imod,                                                 &                  
                  grid%is_CAMMGMP_used,                                                &
 !lm
-!
+                 grid%xice,                                                           &
 !ND TEST FOR OUTPUTING DRY DEPOSITION MASSIVELY
                  grid%dryd_ct,                                                        &
 !lm

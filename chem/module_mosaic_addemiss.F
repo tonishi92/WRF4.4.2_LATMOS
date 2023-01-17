@@ -54,6 +54,7 @@ CONTAINS
 
    TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
 
+   CHARACTER*256 :: mminlu_loc
    INTEGER,      INTENT(IN   ) :: id,                                      &
                                   ids,ide, jds,jde, kds,kde,               &
                                   ims,ime, jms,jme, kms,kme,               &
@@ -734,7 +735,7 @@ size_loop: &
             call wrf_message("WARNING: You are calling DUSTRAN dust emission scheme with MOSAIC, which is highly experimental and not recommended for use. Please use dust_opt==13")
             !czhao---------------------------
             call mosaic_dust_emiss( slai, ust, smois, ivgtyp, isltyp,      &
-               id, dtstep, u10, v10, alt, dz8w, xland, config_flags, chem, &
+               id, dtstep, u10, v10, alt, dz8w, xland, config_flags,mminlu_loc, chem, &
                ids,ide, jds,jde, kds,kde,                                  &
                ims,ime, jms,jme, kms,kme,                                  &
                its,ite, jts,jte, kts,kte                                   )
@@ -1915,7 +1916,6 @@ size_loop: &
 	real rdry_cm, rwet_cm
 	real sigmag_star
 	real xmdry, xsdry
-	
 	real ddrylo, ddryhi, alogddrylo
 	real ddrybb, ddry_cm, dwet_cm, dwetbb
 	real ddryaa, dwetaa, dlogddry, df0dlogddry
@@ -2278,7 +2278,7 @@ END MODULE module_mosaic_addemiss
 !----------------------------------------------------------------------
 
    subroutine mosaic_dust_emiss(  slai,ust, smois, ivgtyp, isltyp,         &
-               id, dtstep, u10, v10, alt, dz8w, xland, config_flags, chem, &
+               id, dtstep, u10, v10, alt, dz8w, xland, config_flags, mminlu_loc, chem, &
                ids,ide, jds,jde, kds,kde,                                  &
                ims,ime, jms,jme, kms,kme,                                  &
                its,ite, jts,jte, kts,kte                                   )
@@ -2308,13 +2308,17 @@ END MODULE module_mosaic_addemiss
 !    important as 2) and 3).
 ! 6) Now the dust added into dust species
 
-   USE module_configure, only:  grid_config_rec_type
-   USE module_state_description, only:  num_chem, param_first_scalar    
+!   USE module_configure, only:  grid_config_rec_type
+!   USE module_state_description, only:  num_chem, param_first_scalar    
+   USE module_configure
+   USE module_state_description
    USE module_data_mosaic_asect
 
    IMPLICIT NONE
 
    TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
+
+   CHARACTER*256 :: mminlu_loc      
 
    INTEGER,      INTENT(IN   ) :: id,                                      &
                                   ids,ide, jds,jde, kds,kde,               &
@@ -2485,9 +2489,37 @@ END MODULE module_mosaic_addemiss
 ! * currently modified these values so that only a small fraction of cell
 !   area is erodable
 ! * these values are highly tuneable!
+! * L.I. correct mapping to match MODIS and not USGS (check MPTABLE.TBL)
+!* 10,6,7,8,9 (for grassland, shrubland, savanna)
+         CALL nl_get_mminlu( 1, mminlu_loc )
 
          alphamask=0.001
-         if (ivgtyp(i,j) .eq. 7) then
+         if( trim(mminlu_loc) == 'MODIFIED_IGBP_MODIS_NOAH' ) then
+          if (ivgtyp(i,j) .eq. 10) then
+           f8=0.005
+           f50=0.00
+           f51=0.10
+           f51=0.066
+           f52=0.00
+           alphamask=(f8+f50)*1.0+(f51+f52)*0.5
+          endif
+          if ((ivgtyp(i,j) .eq. 6) .or. (ivgtyp(i,j) .eq. 7) .or. (ivgtyp(i,j) .eq. 8)) then
+           f8=0.010
+           f50=0.00
+           f51=0.00
+           f52=0.15
+           f52=0.10
+           alphamask=(f8+f50)*1.0+(f51+f52)*0.5
+          endif
+          if (ivgtyp(i,j) .eq. 9) then
+           f8=0.00
+           f50=0.00
+           f51=0.01
+           f52=0.00
+           alphamask=(f8+f50)*1.0+(f51+f52)*0.5
+          endif
+         elseif( trim(mminlu_loc) == 'USGS' ) then
+          if (ivgtyp(i,j) .eq. 7) then
            f8=0.005
            f50=0.00
            f51=0.10
@@ -2510,6 +2542,7 @@ END MODULE module_mosaic_addemiss
            f52=0.00
            alphamask=(f8+f50)*1.0+(f51+f52)*0.5
           endif
+         endif
 
 ! part2 - zobler
 ! 

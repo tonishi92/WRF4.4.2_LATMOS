@@ -19,7 +19,7 @@ CONTAINS
 	subroutine aer_drydep_driver(                                      &
 		id, ktau, dtstep, config_flags, aer_mech_id,               &
 		gmt, julday,                                               &
-		t_phy, rho_phy, p_phy,                                     &
+		t_phy, rho_phy, p_phy, snowc,                              &
 		alt, p8w, t8w, dz8w, z, z_at_w,                            &
 		ust, aer_res, ivgtyp, vegfra, pbl, rmol, znt,              &
 		moist, chem, ddvel,                                        &
@@ -61,8 +61,10 @@ CONTAINS
 !    302 & 312 - iseason is always 1 (summer)
 !
 
-	use module_configure, only:  grid_config_rec_type, num_moist, num_chem
-	use module_state_description, only:  param_first_scalar
+!!!!!!  use module_configure, only:  grid_config_rec_type, num_moist, num_chem
+!!!!!!  use module_state_description, only:  param_first_scalar
+	use module_configure
+	use module_state_description
 
 	use module_data_mosaic_asect
 	use module_data_mosaic_other
@@ -84,7 +86,7 @@ CONTAINS
 
 	real, intent(in),   &
 		dimension( ims:ime, kms:kme, jms:jme ) :: &
-		t_phy, rho_phy, p_phy, &
+		t_phy, rho_phy, p_phy,snowc, &
 		alt, p8w, t8w, dz8w, z, z_at_w
 
 	integer, intent(in),   &
@@ -117,6 +119,7 @@ CONTAINS
 
 	type(grid_config_rec_type), intent(in) :: config_flags
 
+        CHARACTER*256 :: mminlu_loc
 
 !   local variables
 	integer :: i, ibin, iflag_coarse, iflag_nac, &
@@ -345,7 +348,7 @@ main_i_loop:   &
 		    wetdgnum, tmp_lnsg, wetdens,   &
 		    tempbox, airdensbox, ustar, depresist_a,   &
 		    ioptaa, iseason, isurftype, 2, iwetsurf,   &
-		    airkinvisc, freepath,   &
+		    airkinvisc, freepath,its,ite, jts,jte,ims,ime, jms,jme,snowc,config_flags,mminlu_loc, &
 		    1, 1,   &
 		    depvel0_add(ibin), depvel3_add(ibin),   &
 		    depresist_d0, depresist_d3,   &
@@ -1652,7 +1655,7 @@ main_i_loop:   &
          airtemp_in, airdens_in, ustar_in, resist_a_in, &
          zhang_optaa, iseason_in, &
          isurftype_in, modesurftype, iwetsurf, &
-         airkinvisc, freepath,   &
+         airkinvisc, freepath,its,ite,jts,jte, ims,ime, jms,jme,snowc,config_flags,mminlu_loc,   &
          ido_mom0, ido_mom3,   &
          depvel_0, depvel_3,   &
          resist_s0, resist_s3,   &
@@ -1664,9 +1667,15 @@ main_i_loop:   &
 ! use precision
 ! use physconst, only: gravit, tmelt, rhodair
 
+      USE module_configure
+      USE module_state_description
+      USE module_data_mosaic_asect
+
       implicit none
 
 !     in
+      TYPE(grid_config_rec_type),  intent(in   )    :: config_flags
+      CHARACTER*256 :: mminlu_loc
       real     :: dg_num_in    ! geometric mean diameter of number distribution (m)
       real     :: lnsig_in     ! nat. log. of geometric standard deviation of particles
       real     :: dens_part_in ! density of particle material (kg/m3)
@@ -1683,7 +1692,8 @@ main_i_loop:   &
       real     :: airkinvisc   ! kinematic viscosity of air (m2/s)
       real     :: freepath     ! mean free path of air molecules (m)
       integer  :: ido_mom0, ido_mom3 ! flag for do/skip moment 0 & 3 calculations
-
+      integer,     intent(in   ) :: its,ite, jts,jte,ims,ime, jms,jme
+      real,  dimension( ims:ime , jms:jme ), intent(in   ) :: snowc
 !     out
       real     :: depvel_0, depvel_3    ! surface deposition velocity for 
                                         ! 0th (number) and 3rd (mass) moments (m/s)
@@ -1693,10 +1703,11 @@ main_i_loop:   &
 !     local
       integer  :: iseason, isurftype
       integer  :: moment     ! moment of size distribution (0 for number, 2 for surface area, 3 for volume)
-
+      integer :: i,j
       real, parameter :: gravit = 9.806
       real, parameter :: boltzmann=1.381e-23 ! J/deg/molecule
       real, parameter :: pi = 3.1415926536
+      integer :: icorrection_dep_vel
 
       real     :: airdens
       real     :: airtemp
@@ -1724,7 +1735,7 @@ main_i_loop:   &
       real     :: ustar
       real     :: vsettl         ! gravitational settling velocity of particle (m/s)
       real     :: viscosity      ! dynamic viscosity of air (kg/m/s)
-
+      !Zhang et al. 2001: Table 3 
       real, save :: gammax(15)     ! exponent of schmidt number
       data gammax/ 0.56, 0.58, 0.56, 0.56, 0.56, &
                    0.54, 0.54, 0.54, 0.54, 0.54, &
@@ -1734,7 +1745,7 @@ main_i_loop:   &
       data alpha/   1.0,   0.6,   1.1,   0.8,   0.8, &
                     1.2,   1.2,  50.0,  50.0,   1.3, &
                     2.0,  50.0, 100.0, 100.0,   1.5/
-
+      !missing values (9.999) for Zhang land type: 8,9,12,13,14 (Desert, Tundra, Ice cap/glacier, Inland water, Ocean)
       real, save :: rad_collector(5,15) ! radius (m) of surface collectors
       data rad_collector/ &
            0.002, 0.002, 0.002, 0.002, 0.002, &  ! luc 1
@@ -1752,8 +1763,41 @@ main_i_loop:   &
            9.999, 9.999, 9.999, 9.999, 9.999, &  ! luc 13
            9.999, 9.999, 9.999, 9.999, 9.999, &  ! luc 14
            0.010, 0.010, 0.010, 0.010, 0.010  /  ! luc 15
-
-      integer, save  :: isurftype_zhang_from_usgs(25) ! maps usgs surface type to zhang type
+!!! LI
+      !LI 2021:I checked DATASET_IDENTIFIER in module_sf_noahmplsm.F and I am using MODIS land use categories
+      !and not usgs categories!Below next to usgs type I will add the correspoding numbers for the same land use categories from
+      !MODIS. I derived this information from MPTABLE.TBL !
+      integer, save  :: isurftype_zhang_from_usgs(25) ! maps usgs surface type to zhang type (original)
+      integer, save  :: isurftype_zhang_from_modis(20) ! maps MODIS surface type to zhang type !L.I.
+      data isurftype_zhang_from_modis / &  
+        !Original !zhang type         <---  usgs type / (MODIS type)                       --->  wesely type
+    !zhang type! mapping usgs to zhang type, but MODIS is being used (isurftype = isurftype_zhang_from_usgs(isurftype_in), in which
+    !mapping to MODIS LU_INDEX    !isurftype is equal to ivgtyp for aer_drydep_opt equal to 301,302,311,312).
+        1,&  !15, &  ! urban                    1(13): urban and built-up land                      1  urban
+        2,&  ! 7, &  ! crops, mixed farming     2(12): dryland cropland & pasture                   2  agricultural land
+        3,&  ! 7, &  !                          3: irrigated crop & pasture (no correspoding)       2
+        4,&  ! 7, &  !                          4: mix dry/irrig crop & pasture (no correspoding)   2
+        5,&  ! 7, &  !                          5(14): cropland/grassland mosaic                    2
+        6,&  !10, &  ! shrubs & woodland        6: cropland/woodland mosaic  (no correspoding)      4
+        6,&  ! 6, &  ! grass                    7(10): grassland                                    3  range land
+        6,&  ! 6, &  !                          8(6&8): shrubland                                   3
+        6,&  ! 6, &  !                          9(7): mixed shrubland/grassland                     3
+        6,&  ! 6, &  !                         10(9): savanna                                       3,    (always summer)
+       10,&   ! 4, &  ! deciduous broadleaf     11(4): deciduous broadleaf forest                    4  deciduous forest
+        7,&  ! 3, &  ! deciduous needle-lf     12(3): deciduous needleleaf forest                   5,    (autumn and winter modi)
+       15,&  ! 2, &  ! evergreen broadleaf     13(2): evergreen broadleaf forest                    4,    (always summer)
+        7,&   ! 1, &  ! evergreen needle-lf     14(1): evergreen needleleaf forest                   5  coniferous forest
+       12,&  ! 5, &  ! mixed broad/needle-lf   15(5): mixed forest                                  6  mixed forest including wetland
+        8,&   !14, &  ! ocean                   16(17): water bodies                                 7  water, salt and fresh
+       14,&  !11, &  ! wetland w plants        17(11): herbaceous wetland                           9
+       10,&  !10, &  !                         18(11): wooded wetland                               6
+        9,&  ! 8, &  ! desert                  19(16): barren or sparsely vegetated                 8  barren land, mostly desert
+        8 /  ! 9, &  ! tundra                  20: herbaceous tundra   (no correspoding)            9  nonforested wetland
+             !10 &  !                         21(18): wooded tundra                                6
+             ! 9, &  !                         22(19): mixed tundra                                 6
+             ! 8, &  !                         23(20): bare ground tundra                           8
+             !12, &  ! ice cap & glacier       24(15): snow or ice                                  -,    (always winter)
+             ! 8  /  !                         25: no data (no correspoding)                        8
       data isurftype_zhang_from_usgs / &  
                ! zhang type         <---  usgs type                    --->  wesely type
         15, &  ! urban                    1: urban and built-up land         1  urban
@@ -1787,7 +1831,15 @@ main_i_loop:   &
                !                         (the usgs ---> wesely mapping is used in module_dep_simple
                !                                        and is shown here for reference only)
            
- 
+!!! LI
+      !!!!add the namelist option
+      !! (Nilsson & Rannik measurements over ice/snow and open ocean)
+       icorrection_dep_vel = 0
+       if(config_flags%zhang_correction_over_snow_ice==1) then
+          icorrection_dep_vel = 1
+       endif
+     
+!!! LI 
 !  reality checks
       airtemp   = max( 50.0,   min( 350.0,  airtemp_in ) )
       airdens   = max( 0.01,   min( 5.0,    airdens_in ) )
@@ -1796,15 +1848,27 @@ main_i_loop:   &
       lnsig     = max( 0.0,    min( log(5.0), lnsig_in ) )
       resist_a  = max( 1.0e-2, min( 1.0e6,  resist_a_in ) )
       ustar     = max( 1.0e-6, min( 1.0e2,  ustar_in ) )
-
+      !!!modesurftype = 2;defined when call zhang2001_aer_drydepvel_1
+      CALL nl_get_mminlu( 1, mminlu_loc )
       isurftype = 8
       if (modesurftype <= 1) then
          if ((isurftype_in >= 1) .and. (isurftype_in <= 15)) &
             isurftype = isurftype_in
       else
          ! map from usgs to zhang surface type
-         if ((isurftype_in >= 1) .and. (isurftype_in <= 25)) &
+         !!! LI
+         if ( trim(mminlu_loc) == 'USGS' ) then 
+          if ((isurftype_in >= 1) .and. (isurftype_in <= 25)) & !original link to USGS
             isurftype = isurftype_zhang_from_usgs(isurftype_in)
+         endif 
+         !map from modis to zhang surface type
+         if( trim(mminlu_loc) == 'MODIFIED_IGBP_MODIS_NOAH' ) then
+          if ((isurftype_in >= 1) .and. (isurftype_in <= 20)) & !L.I. 2021 link to MODIS
+            isurftype = isurftype_zhang_from_modis(isurftype_in)
+         endif
+         !!! if ((isurftype_in >= 1) .and. (isurftype_in <= 25)) &
+         !!!    isurftype = isurftype_zhang_from_usgs(isurftype_in)
+         !!! LI 
       end if
 
       iseason = 1
@@ -1887,6 +1951,7 @@ main_i_loop:   &
       schmidt=airkinvisc/diffus_part
       e_brown = schmidt**(-gammax(isurftype))
 
+      !!LI!!This is Zhang surface types
       if (isurftype==8  .or. isurftype==9  .or. &
           isurftype==12 .or. isurftype==13 .or. isurftype==14) then
 !        non-vegetated surface
@@ -1922,8 +1987,39 @@ main_i_loop:   &
       resist_sfc = 1./max(tmpa,1.0e-30)
 
 !     depvel = vsettl+1./(resist_a+resist_sfc)
-! use this formula rather than zhang 2001 simple formula
+! use this formula rather than zhang 2001 simple formula; depvel in m/s
       depvel = vsettl + 1./(resist_a + resist_sfc + resist_a*resist_sfc*vsettl)
+!!! LI
+      !write(*,*) 'Zhang surface type,MODIS surface type, diameter, deposition velocity',isurftype,isurftype_in,dp_vm,depvel
+      !Will overwrite depvel for snow/ice surfaces and over ocean based on Nilsson and Rannik 2001 paper, measuring dry deposition velocities
+      !during Arctic Ocean Expendition in 1996.
+      !Here works for the moment only for MODIS land use category. Will add also for USGS.
+      !snow/ice = 12 (15 in MODIS) and open ocean = 14 (17 in MODIS)
+      if(icorrection_dep_vel.eq.1)then
+      if (isurftype==12) then
+          depvel = 3.0e-04
+      endif
+
+      if (isurftype==14) then
+          depvel = 1.9e-03
+      endif
+
+      !Here to check if surfuce type is not ice/snow
+      !And if there is snow cover
+      !then dry deposition velocity should be equal to the value which corresponds to snow/ice land category
+      if (isurftype.ne.12) then
+        do j = jts,jte
+            do i = its,ite
+                if ( (snowc(i,j) > 0.1) ) then
+                        depvel = 3.0e-04
+                endif
+            enddo
+        enddo
+      endif
+      endif
+
+     
+!!! LI
 
       if (moment == 0) then
          depvel_0 = depvel
