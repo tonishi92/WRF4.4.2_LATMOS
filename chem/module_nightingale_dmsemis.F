@@ -1,16 +1,26 @@
-! lm Louis Marelle 2015/4
+! 2018/10/04 Louis Marelle
 ! Compute DMS emissions and add them to chem(:,:,:,p_dms)
-! I developped this for CBMZ_MOSAIC with DMS and SAPRC_MOSAIC with DMS reactions
+! I developed this for CBMZ_MOSAIC with DMS and SAPRC_MOSAIC with DMS reactions
 ! added to KPP, but this should work for any mechanism where DMS is defined in
-! chem. This routines requires that e_dms_oc, the oceanic dms content, is
+! chem. However, if someone tries to use this option with another mechanism I
+! included a call to WRF_FATAL in chemics_init.F.
+! This routines requires that e_dms_oc, the oceanic dms content, is
 ! present in emis_ant (read from the wrfchemi files). This is checked in
-! chem_init
+! chem_init.F
 !
 ! This routine needs dms oceanic content as an input, read in wrfchemi files
 ! (emis_ant) for now. This oceanic content can be overwritten by another
 ! value here if needed (dms_ocean_sfc), see below.
 !
 ! This module is based on module_cbmz_addemiss.F
+!
+! This code was developped for the following publication, also showing tests in
+! the Arctic:
+! Marelle, L., J.-C. Raut, K. S. Law, L. K. Berg, J. D. Fast, R. C. Easter, M.
+! Shrivastava, and J. L. Thomas (2017), Improvements to the WRF-Chem 3.5.1 model
+! for quasi- hemispheric simulations of aerosols and ozone in the Arctic,
+! Geoscientific Model Devel- opment, 10(10), 3661–3677,
+! doi:10.5194/gmd-10-3661-2017.
 
 MODULE module_nightingale_dmsemis
 
@@ -25,7 +35,7 @@ CONTAINS
                its,ite, jts,jte, kts,kte                                  )
 !
 ! calculates and adds emissions to dms in chem
-! (i.e., emissions tendencies over time dtstep are applied 
+! (i.e., emissions tendencies over time dtstep are applied
 ! to the trace gas concentrations)
 !
 
@@ -70,16 +80,16 @@ CONTAINS
    real :: w10, dms_emi, k_dms, dms_ocean_sfc = 0.0, sc_co2 = 600.0, sc_dms, &
                 sst_ij_cels
 
-!       
+!
 ! add emissions
 !
 
-   do j=jts,jte  
-      do i=its,ite 
+   do j=jts,jte
+      do i=its,ite
 
          conv = 4.828e-4 / rho_phy(i,kts,j) * dtstep / (dz8w(i,kts,j) * 60.)
-         
-         ! Nightingale et al., 2000 parameterization using a Schmidt number 
+
+         ! Nightingale et al., 2000 parameterization using a Schmidt number
          ! for DMS depending on the actual SST
              ! only over open water (xland>1.5)
              if (xland(i,j) .gt. 1.5) then
@@ -92,8 +102,8 @@ CONTAINS
                  if ( dz8w(i,kts,j) .lt. 12.) &
                    w10 = sqrt( u_phy(i,kts,j) * u_phy(i,kts,j) + v_phy(i,kts,j) * v_phy(i,kts,j) )
 
-                 ! Convert sst (=tskin at sea surface) to celsius. The Schmidt 
-                 ! number parameterization is only valid between 5 and 30 °C, 
+                 ! Convert sst (=tskin at sea surface) to celsius. The Schmidt
+                 ! number parameterization is only valid between 5 and 30 °C,
                  ! so constrain the SST between these two values
                  sst_ij_cels = ( tsk(i,j) - 273.15 )
                  if (sst_ij_cels < 5.0) sst_ij_cels = 5.0
@@ -104,7 +114,7 @@ CONTAINS
                  sc_dms = 2674.0 - 147.12 * sst_ij_cels + 3.726 * sst_ij_cels ** 2.0 &
                              - 0.038 * sst_ij_cels ** 3
 
-                 ! Sea - air exchange coefficient from Nightingale et al. 2000, 
+                 ! Sea - air exchange coefficient from Nightingale et al. 2000,
                  ! and unit change from cm hr-1 to m s-1
                  k_dms = ( 0.222 * w10**2 + 0.333 * w10) * (sc_dms / sc_co2)**(-0.5) / 3600. / 100.
 
@@ -122,7 +132,7 @@ CONTAINS
                              +dms_emi*conv
 
              end if !xland .gt 1.5, over open water
-      end do 
+      end do
    end do
 
 END subroutine nightingale_dmsemis
