@@ -925,6 +925,9 @@
               current_month,                                                               &
          ! stuff for LNOx emissions
              grid%ht, grid%refl_10cm, grid%ic_flashrate, grid%cg_flashrate,                 &
+!lm
+              grid%cldfra_cup, grid%htop,                                                  &
+!lm
          ! stuff for aircraft emissions
               emis_aircraft,                                                               &
          ! stuff for the GHG fluxes

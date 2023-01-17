@@ -148,7 +148,7 @@ MODULES =                                 \
         module_input_tracer.o             \
 	module_lightning_nox_driver.o     \
 	module_lightning_nox_ott.o        \
-	module_lightning_nox_decaria.o    \
+	module_lightning_nox_decaria_cup.o    \
         module_mixactivate_wrappers.o     \
         module_mosaic_init_aerpar.o       \
         module_mosaic2_driver.o           \
