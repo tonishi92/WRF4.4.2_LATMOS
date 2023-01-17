@@ -248,6 +248,12 @@
    INTEGER :: ijulian
 ! UoC dust scheme option
    INTEGER :: imod   
+!lm
+   INTEGER :: bc_switch, so4_switch
+!lm
+!TO2
+   INTEGER :: no3_switch, nh4_switch, oc_switch
+!TO2
 !  REAL    :: convtrans_avglen_m
 
 ! ................................................................
@@ -278,6 +284,9 @@
       LOGICAL      :: adapt_step_flag, do_chemstep, do_photstep
 
       LOGICAL      :: chm_is_mozart
+!lm
+      LOGICAL      :: do_radeffectstep
+!lm
 
       REAL :: DAYI,DPL,FICE,FRAIN,HOUR,PLYR          &
      &       ,QI,QR,QW,RADT,TIMES,WC,TDUM,WMSK,RWMSK
@@ -389,6 +398,22 @@
      do_photstep = .true.
   ENDIF
 
+!lm Only calculate the optical properties for radiative effects of aerosols at
+!time step radeffectdt
+  do_radeffectstep = .false.
+  IF ( ktau==1 ) then
+     do_radeffectstep = .true.
+  ELSE IF ( adapt_step_flag ) THEN
+     IF ( (grid%radeffectdt<=0) .or. &
+          ( curr_secs+real(grid%dt,8)+0.01 >= &
+          ( INT( curr_secs/real(grid%radeffectdt*60.,8)+1,8 )*real(grid%radeffectdt*60.,8)) ) &
+          ) then
+        do_radeffectstep = .true.
+     ENDIF
+  ELSE IF ( (MOD(ktau,grid%stepradeffect)==0) .or. (grid%stepradeffect==1) ) THEN
+     do_radeffectstep = .true.
+  ENDIF
+!lm
   if( ktau==1 ) then
      dtstepc = grid%dt
   else
@@ -947,6 +972,167 @@
            config_flags%chem_opt /= CO2_TRACER  .and. &
            config_flags%chem_opt /= GHG_TRACER ) then
          call wrf_debug(15,'calling optical driver')
+
+!lm only do optical properties for radiative effects at timestep radeffectdt
+         IF ( do_radeffectstep ) THEN
+         CALL wrf_debug(1,'chem_driver, calling optical properties for the radiative effect calculations')
+!lm call optical_driver once with mass_bc=0
+         so4_switch=1
+         bc_switch=0
+         no3_switch=1
+         nh4_switch=1
+         oc_switch=1
+         call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,&
+              chem,dz8w,rri,rh,&
+              grid%h2oai,grid%h2oaj,&
+              grid%tauaer1_no_bc,grid%tauaer2_no_bc,grid%tauaer3_no_bc,grid%tauaer4_no_bc,&
+             !czhao
+              grid%extaer1,grid%extaer2,grid%extaer3,grid%extaer4,&
+              grid%gaer1_no_bc,grid%gaer2_no_bc,grid%gaer3_no_bc,grid%gaer4_no_bc,&
+              grid%waer1_no_bc,grid%waer2_no_bc,grid%waer3_no_bc,grid%waer4_no_bc,&
+              grid%bscoef1,grid%bscoef2,grid%bscoef3,grid%bscoef4,&
+              grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,&
+              grid%totoa_a01,grid%totoa_a02,grid%totoa_a03,grid%totoa_a04,&
+              grid%totoa_a05,grid%totoa_a06,grid%totoa_a07,grid%totoa_a08,&
+              grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,grid%extaerlw5,&
+              grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,grid%extaerlw9,grid%extaerlw10,&
+              grid%extaerlw11,grid%extaerlw12,grid%extaerlw13,grid%extaerlw14,grid%extaerlw15,&
+              grid%extaerlw16,    &
+              grid%tauaerlw1,grid%tauaerlw2,grid%tauaerlw3,grid%tauaerlw4,grid%tauaerlw5,&
+              grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,&
+              grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,&
+              grid%tauaerlw16,    &
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+              ids,ide, jds,jde, kds,kde,&
+              ims,ime, jms,jme, kms,kme,&
+              its,ite, jts,jte, kts,kte)
+!call optical_driver once with mass_so4=0
+         so4_switch=0
+         bc_switch=1
+         no3_switch=1
+         nh4_switch=1
+         oc_switch=1
+         call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,&
+              chem,dz8w,rri,rh,&
+              grid%h2oai,grid%h2oaj,&
+              grid%tauaer1_no_so4,grid%tauaer2_no_so4,grid%tauaer3_no_so4,grid%tauaer4_no_so4,&
+             !czhao
+              grid%extaer1,grid%extaer2,grid%extaer3,grid%extaer4,&
+              grid%gaer1_no_so4,grid%gaer2_no_so4,grid%gaer3_no_so4,grid%gaer4_no_so4,&
+              grid%waer1_no_so4,grid%waer2_no_so4,grid%waer3_no_so4,grid%waer4_no_so4,&
+              grid%bscoef1,grid%bscoef2,grid%bscoef3,grid%bscoef4,&
+              grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,&
+              grid%totoa_a01,grid%totoa_a02,grid%totoa_a03,grid%totoa_a04,&
+              grid%totoa_a05,grid%totoa_a06,grid%totoa_a07,grid%totoa_a08,&
+              grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,grid%extaerlw5,&
+              grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,grid%extaerlw9,grid%extaerlw10,&
+              grid%extaerlw11,grid%extaerlw12,grid%extaerlw13,grid%extaerlw14,grid%extaerlw15,&
+              grid%extaerlw16,    &
+              grid%tauaerlw1,grid%tauaerlw2,grid%tauaerlw3,grid%tauaerlw4,grid%tauaerlw5,&
+              grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,&
+              grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,&
+              grid%tauaerlw16,    &
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+              ids,ide, jds,jde, kds,kde,&
+              ims,ime, jms,jme, kms,kme,&
+              its,ite, jts,jte, kts,kte)
+!call optical_driver once with mass_no3=0
+         so4_switch=1
+         bc_switch=1
+         no3_switch=0
+         nh4_switch=1
+         oc_switch=1
+         call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,&
+              chem,dz8w,rri,rh,&
+              grid%h2oai,grid%h2oaj,&
+              grid%tauaer1_no_no3,grid%tauaer2_no_no3,grid%tauaer3_no_no3,grid%tauaer4_no_no3,&
+             !czhao
+              grid%extaer1,grid%extaer2,grid%extaer3,grid%extaer4,&
+              grid%gaer1_no_no3,grid%gaer2_no_no3,grid%gaer3_no_no3,grid%gaer4_no_no3,&
+              grid%waer1_no_no3,grid%waer2_no_no3,grid%waer3_no_no3,grid%waer4_no_no3,&
+              grid%bscoef1,grid%bscoef2,grid%bscoef3,grid%bscoef4,&
+              grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,&
+              grid%totoa_a01,grid%totoa_a02,grid%totoa_a03,grid%totoa_a04,&
+              grid%totoa_a05,grid%totoa_a06,grid%totoa_a07,grid%totoa_a08,&
+              grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,grid%extaerlw5,&
+              grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,grid%extaerlw9,grid%extaerlw10,&
+              grid%extaerlw11,grid%extaerlw12,grid%extaerlw13,grid%extaerlw14,grid%extaerlw15,&
+              grid%extaerlw16,    &
+              grid%tauaerlw1,grid%tauaerlw2,grid%tauaerlw3,grid%tauaerlw4,grid%tauaerlw5,&
+              grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,&
+              grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,&
+              grid%tauaerlw16,    &
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+              ids,ide, jds,jde, kds,kde,&
+              ims,ime, jms,jme, kms,kme,&
+              its,ite, jts,jte, kts,kte)
+!call optical_driver once with mass_nh4=0
+         so4_switch=1
+         bc_switch=1
+         no3_switch=1
+         nh4_switch=0
+         oc_switch=1
+         call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,&
+              chem,dz8w,rri,rh,&
+              grid%h2oai,grid%h2oaj,&
+              grid%tauaer1_no_nh4,grid%tauaer2_no_nh4,grid%tauaer3_no_nh4,grid%tauaer4_no_nh4,&
+             !czhao
+              grid%extaer1,grid%extaer2,grid%extaer3,grid%extaer4,&
+              grid%gaer1_no_nh4,grid%gaer2_no_nh4,grid%gaer3_no_nh4,grid%gaer4_no_nh4,&
+              grid%waer1_no_nh4,grid%waer2_no_nh4,grid%waer3_no_nh4,grid%waer4_no_nh4,&
+              grid%bscoef1,grid%bscoef2,grid%bscoef3,grid%bscoef4,&
+              grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,&
+              grid%totoa_a01,grid%totoa_a02,grid%totoa_a03,grid%totoa_a04,&
+              grid%totoa_a05,grid%totoa_a06,grid%totoa_a07,grid%totoa_a08,&
+              grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,grid%extaerlw5,&
+              grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,grid%extaerlw9,grid%extaerlw10,&
+              grid%extaerlw11,grid%extaerlw12,grid%extaerlw13,grid%extaerlw14,grid%extaerlw15,&
+              grid%extaerlw16,    &
+              grid%tauaerlw1,grid%tauaerlw2,grid%tauaerlw3,grid%tauaerlw4,grid%tauaerlw5,&
+              grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,&
+              grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,&
+              grid%tauaerlw16,    &
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+              ids,ide, jds,jde, kds,kde,&
+              ims,ime, jms,jme, kms,kme,&
+              its,ite, jts,jte, kts,kte)
+!call optical_driver once with mass_oc=0
+         so4_switch=1
+         bc_switch=1
+         no3_switch=1
+         nh4_switch=1
+         oc_switch=0
+         call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,&
+              chem,dz8w,rri,rh,&
+              grid%h2oai,grid%h2oaj,&
+              grid%tauaer1_no_oc,grid%tauaer2_no_oc,grid%tauaer3_no_oc,grid%tauaer4_no_oc,&
+             !czhao
+              grid%extaer1,grid%extaer2,grid%extaer3,grid%extaer4,&
+              grid%gaer1_no_oc,grid%gaer2_no_oc,grid%gaer3_no_oc,grid%gaer4_no_oc,&
+              grid%waer1_no_oc,grid%waer2_no_oc,grid%waer3_no_oc,grid%waer4_no_oc,&
+              grid%bscoef1,grid%bscoef2,grid%bscoef3,grid%bscoef4,&
+              grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,&
+              grid%totoa_a01,grid%totoa_a02,grid%totoa_a03,grid%totoa_a04,&
+              grid%totoa_a05,grid%totoa_a06,grid%totoa_a07,grid%totoa_a08,&
+              grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,grid%extaerlw5,&
+              grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,grid%extaerlw9,grid%extaerlw10,&
+              grid%extaerlw11,grid%extaerlw12,grid%extaerlw13,grid%extaerlw14,grid%extaerlw15,&
+              grid%extaerlw16,    &
+              grid%tauaerlw1,grid%tauaerlw2,grid%tauaerlw3,grid%tauaerlw4,grid%tauaerlw5,&
+              grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,&
+              grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,&
+              grid%tauaerlw16,    &
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+              ids,ide, jds,jde, kds,kde,&
+              ims,ime, jms,jme, kms,kme,&
+              its,ite, jts,jte, kts,kte)
+         endif !doradeffectstep
+         so4_switch=1
+         bc_switch=1
+         no3_switch=1
+         nh4_switch=1
+         oc_switch=1
+!lm
          call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,         &
               chem,dz8w,rri,rh,                                                       &
               grid%h2oai,grid%h2oaj,                                                  &
@@ -967,6 +1153,9 @@
               grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,  &
               grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,  &
               grid%tauaerlw16,    &
+!lm
+              bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+!lm
               ids,ide, jds,jde, kds,kde,                                              &
               ims,ime, jms,jme, kms,kme,                                              &
               its,ite, jts,jte, kts,kte)

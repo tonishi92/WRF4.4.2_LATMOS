@@ -10597,7 +10597,9 @@ CONTAINS
             QV1D(K)=max(0.,QV1D(K))
          ENDDO
 
-         IF (o3input.eq.2) THEN
+!lm        if(o3input .eq. 2)then
+        if(o3input .eq. 2 .or. o3input .eq. 3) then
+!lm
             DO K=kts,kte
                O31D(K)=O33D(I,K,J)
             ENDDO
@@ -10918,7 +10920,9 @@ CONTAINS
 ! Get ozone profile including amount in extra layer above model top
          call inirad (o3mmr,plev,kts,kte)
 
-        if(o3input.eq.2) then
+!lm        if(o3input .eq. 2)then
+        if(o3input .eq. 2 .or. o3input .eq. 3) then
+!lm
          do k = kts, kte+1
             o3vmr(ncol,k) = o3mmr(k) * amdo
             if(k.le.kte)then

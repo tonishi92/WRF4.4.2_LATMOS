@@ -277,7 +277,14 @@ BENCH_START(rad_driver_tim)
      &        ,swint_opt=config_flags%swint_opt                                      &
      &        ,solar_opt=config_flags%solar_diagnostics                              &
      &        ,P8W=grid%p_hyd_w        ,P=grid%p_hyd            ,PI=pi_phy           &
-     &        ,RADT=grid%radt          ,RA_CALL_OFFSET=grid%ra_call_offset           &
+!TO2
+     &        ,radeffect_option=config_flags%radeffect_option                         &
+!TO2
+!lm Add a time step for the output of the radiative effects of O3 and aerosols
+!lm     &        ,RADT=grid%radt          ,RA_CALL_OFFSET=grid%ra_call_offset           &
+     &        ,RADT=grid%radt          ,RADEFFECTDT=grid%radeffectdt                 &
+     &        ,RA_CALL_OFFSET=grid%ra_call_offset                                    &
+!lm
      &        ,RHO=grid%rho            ,RLWTOA=grid%rlwtoa                           &
      &        ,RSWTOA=grid%rswtoa      ,RTHRATEN=grid%rthraten                       &
      &        ,RTHRATENLW=grid%rthratenlw       ,RTHRATENSW=grid%rthratensw          &
@@ -436,6 +443,84 @@ BENCH_START(rad_driver_tim)
      &        ,LWDNT=grid%lwdnt,LWDNTC=grid%lwdntc,LWDNTCLN=grid%lwdntcln &
      &        ,LWUPB=grid%lwupb,LWUPBC=grid%lwupbc,LWUPBCLN=grid%lwupbcln &
      &        ,LWDNB=grid%lwdnb,LWDNBC=grid%lwdnbc,LWDNBCLN=grid%lwdnbcln &
+!lm
+     &         ,ACSWUPT_ALL=grid%acswupt_all ,ACSWUPTC_ALL=grid%acswuptc_all &
+     &         ,ACSWDNT_ALL=grid%acswdnt_all ,ACSWDNTC_ALL=grid%acswdntc_all &
+     &         ,ACSWUPB_ALL=grid%acswupb_all ,ACSWUPBC_ALL=grid%acswupbc_all &
+     &         ,ACSWDNB_ALL=grid%acswdnb_all ,ACSWDNBC_ALL=grid%acswdnbc_all &
+     &         ,ACLWUPT_ALL=grid%aclwupt_all ,ACLWUPTC_ALL=grid%aclwuptc_all &
+     &         ,ACLWDNT_ALL=grid%aclwdnt_all ,ACLWDNTC_ALL=grid%aclwdntc_all &
+     &         ,ACLWUPB_ALL=grid%aclwupb_all ,ACLWUPBC_ALL=grid%aclwupbc_all &
+     &         ,ACLWDNB_ALL=grid%aclwdnb_all ,ACLWDNBC_ALL=grid%aclwdnbc_all &
+     &         ,ACSWUPT_AER=grid%acswupt_aer ,ACSWUPTC_AER=grid%acswuptc_aer &
+     &         ,ACSWDNT_AER=grid%acswdnt_aer ,ACSWDNTC_AER=grid%acswdntc_aer &
+     &         ,ACSWUPB_AER=grid%acswupb_aer ,ACSWUPBC_AER=grid%acswupbc_aer &
+     &         ,ACSWDNB_AER=grid%acswdnb_aer ,ACSWDNBC_AER=grid%acswdnbc_aer &
+     &         ,ACSWUPT_BC=grid%acswupt_bc ,ACSWUPTC_BC=grid%acswuptc_bc &
+     &         ,ACSWDNT_BC=grid%acswdnt_bc ,ACSWDNTC_BC=grid%acswdntc_bc &
+     &         ,ACSWUPB_BC=grid%acswupb_bc ,ACSWUPBC_BC=grid%acswupbc_bc &
+     &         ,ACSWDNB_BC=grid%acswdnb_bc ,ACSWDNBC_BC=grid%acswdnbc_bc &
+     &         ,ACSWUPT_SO4=grid%acswupt_so4 ,ACSWUPTC_SO4=grid%acswuptc_so4 &
+     &         ,ACSWDNT_SO4=grid%acswdnt_so4 ,ACSWDNTC_SO4=grid%acswdntc_so4 &
+     &         ,ACSWUPB_SO4=grid%acswupb_so4 ,ACSWUPBC_SO4=grid%acswupbc_so4 &
+     &         ,ACSWDNB_SO4=grid%acswdnb_so4 ,ACSWDNBC_SO4=grid%acswdnbc_so4 &
+!TO2
+     &         ,ACSWUPT_NO3=grid%acswupt_no3 ,ACSWUPTC_NO3=grid%acswuptc_no3 &
+     &         ,ACSWDNT_NO3=grid%acswdnt_no3 ,ACSWDNTC_NO3=grid%acswdntc_no3 &
+     &         ,ACSWUPB_NO3=grid%acswupb_no3 ,ACSWUPBC_NO3=grid%acswupbc_no3 &
+     &         ,ACSWDNB_NO3=grid%acswdnb_no3 ,ACSWDNBC_NO3=grid%acswdnbc_no3 &
+     &         ,ACSWUPT_NH4=grid%acswupt_nh4 ,ACSWUPTC_NH4=grid%acswuptc_nh4 &
+     &         ,ACSWDNT_NH4=grid%acswdnt_nh4 ,ACSWDNTC_NH4=grid%acswdntc_nh4 &
+     &         ,ACSWUPB_NH4=grid%acswupb_nh4 ,ACSWUPBC_NH4=grid%acswupbc_nh4 &
+     &         ,ACSWDNB_NH4=grid%acswdnb_nh4 ,ACSWDNBC_NH4=grid%acswdnbc_nh4 &
+     &         ,ACSWUPT_OC=grid%acswupt_oc   ,ACSWUPTC_OC=grid%acswuptc_oc &
+     &         ,ACSWDNT_OC=grid%acswdnt_oc   ,ACSWDNTC_OC=grid%acswdntc_oc &
+     &         ,ACSWUPB_OC=grid%acswupb_oc   ,ACSWUPBC_OC=grid%acswupbc_oc &
+     &         ,ACSWDNB_OC=grid%acswdnb_oc   ,ACSWDNBC_OC=grid%acswdnbc_oc &
+!TO2
+     &         ,ACSWUPT_O3=grid%acswupt_o3 ,ACSWUPTC_O3=grid%acswuptc_o3 &
+     &         ,ACSWDNT_O3=grid%acswdnt_o3 ,ACSWDNTC_O3=grid%acswdntc_o3 &
+     &         ,ACSWUPB_O3=grid%acswupb_o3 ,ACSWUPBC_O3=grid%acswupbc_o3 &
+     &         ,ACSWDNB_O3=grid%acswdnb_o3 ,ACSWDNBC_O3=grid%acswdnbc_o3 &
+     &         ,ACLWUPT_O3=grid%aclwupt_o3 ,ACLWUPTC_O3=grid%aclwuptc_o3 &
+     &         ,ACLWDNT_O3=grid%aclwdnt_o3 ,ACLWDNTC_O3=grid%aclwdntc_o3 &
+     &         ,ACLWUPB_O3=grid%aclwupb_o3 ,ACLWUPBC_O3=grid%aclwupbc_o3 &
+     &         ,ACLWDNB_O3=grid%aclwdnb_o3 ,ACLWDNBC_O3=grid%aclwdnbc_o3 &
+     &         ,SWUPT_NO_AER=grid%swupt_no_aer ,SWUPTC_NO_AER=grid%swuptc_no_aer  ,SWUPTCLN_NO_AER=grid%swuptcln_no_aer   &
+     &         ,SWDNT_NO_AER=grid%swdnt_no_aer ,SWDNTC_NO_AER=grid%swdntc_no_aer  ,SWDNTCLN_NO_AER=grid%swdntcln_no_aer   &
+     &         ,SWUPB_NO_AER=grid%swupb_no_aer ,SWUPBC_NO_AER=grid%swupbc_no_aer  ,SWUPBCLN_NO_AER=grid%swupbcln_no_aer   &
+     &         ,SWDNB_NO_AER=grid%swdnb_no_aer ,SWDNBC_NO_AER=grid%swdnbc_no_aer  ,SWDNBCLN_NO_AER=grid%swdnbcln_no_aer   &
+     &         ,SWUPT_NO_BC=grid%swupt_no_bc   ,SWUPTC_NO_BC=grid%swuptc_no_bc    ,SWUPTCLN_NO_BC=grid%swuptcln_no_bc    &
+     &         ,SWDNT_NO_BC=grid%swdnt_no_bc   ,SWDNTC_NO_BC=grid%swdntc_no_bc    ,SWDNTCLN_NO_BC=grid%swdntcln_no_bc    &
+     &         ,SWUPB_NO_BC=grid%swupb_no_bc   ,SWUPBC_NO_BC=grid%swupbc_no_bc    ,SWUPBCLN_NO_BC=grid%swupbcln_no_bc    &
+     &         ,SWDNB_NO_BC=grid%swdnb_no_bc   ,SWDNBC_NO_BC=grid%swdnbc_no_bc    ,SWDNBCLN_NO_BC=grid%swdnbcln_no_bc    &
+     &         ,SWUPT_NO_SO4=grid%swupt_no_so4 ,SWUPTC_NO_SO4=grid%swuptc_no_so4  ,SWUPTCLN_NO_SO4=grid%swuptcln_no_so4  &    
+     &         ,SWDNT_NO_SO4=grid%swdnt_no_so4 ,SWDNTC_NO_SO4=grid%swdntc_no_so4  ,SWDNTCLN_NO_SO4=grid%swdntcln_no_so4  &    
+     &         ,SWUPB_NO_SO4=grid%swupb_no_so4 ,SWUPBC_NO_SO4=grid%swupbc_no_so4  ,SWUPBCLN_NO_SO4=grid%swupbcln_no_so4  &    
+     &         ,SWDNB_NO_SO4=grid%swdnb_no_so4 ,SWDNBC_NO_SO4=grid%swdnbc_no_so4  ,SWDNBCLN_NO_SO4=grid%swdnbcln_no_so4  & 
+     &         ,SWUPT_NO_O3=grid%swupt_no_o3   ,SWUPTC_NO_O3=grid%swuptc_no_o3    ,SWUPTCLN_NO_O3=grid%swuptcln_no_o3    &
+     &         ,SWDNT_NO_O3=grid%swdnt_no_o3   ,SWDNTC_NO_O3=grid%swdntc_no_o3    ,SWDNTCLN_NO_O3=grid%swdntcln_no_o3    &
+     &         ,SWUPB_NO_O3=grid%swupb_no_o3   ,SWUPBC_NO_O3=grid%swupbc_no_o3    ,SWUPBCLN_NO_O3=grid%swupbcln_no_o3    &
+     &         ,SWDNB_NO_O3=grid%swdnb_no_o3   ,SWDNBC_NO_O3=grid%swdnbc_no_o3    ,SWDNBCLN_NO_O3=grid%swdnbcln_no_o3    &
+     &         ,LWUPT_NO_O3=grid%lwupt_no_o3   ,LWUPTC_NO_O3=grid%lwuptc_no_o3    ,LWUPTCLN_NO_O3=grid%lwuptcln_no_o3    &
+     &         ,LWDNT_NO_O3=grid%lwdnt_no_o3   ,LWDNTC_NO_O3=grid%lwdntc_no_o3    ,LWDNTCLN_NO_O3=grid%lwdntcln_no_o3    &
+     &         ,LWUPB_NO_O3=grid%lwupb_no_o3   ,LWUPBC_NO_O3=grid%lwupbc_no_o3    ,LWUPBCLN_NO_O3=grid%lwupbcln_no_o3    &
+     &         ,LWDNB_NO_O3=grid%lwdnb_no_o3   ,LWDNBC_NO_O3=grid%lwdnbc_no_o3    ,LWDNBCLN_NO_O3=grid%lwdnbcln_no_o3    &
+!TO2                                                                                                                 
+     &         ,SWUPT_NO_NO3=grid%swupt_no_no3 ,SWUPTC_NO_NO3=grid%swuptc_no_no3  ,SWUPTCLN_NO_NO3=grid%swuptcln_no_no3  &
+     &         ,SWDNT_NO_NO3=grid%swdnt_no_no3 ,SWDNTC_NO_NO3=grid%swdntc_no_no3  ,SWDNTCLN_NO_NO3=grid%swdntcln_no_no3  &
+     &         ,SWUPB_NO_NO3=grid%swupb_no_no3 ,SWUPBC_NO_NO3=grid%swupbc_no_no3  ,SWUPBCLN_NO_NO3=grid%swupbcln_no_no3  &
+     &         ,SWDNB_NO_NO3=grid%swdnb_no_no3 ,SWDNBC_NO_NO3=grid%swdnbc_no_no3  ,SWDNBCLN_NO_NO3=grid%swdnbcln_no_no3  &
+     &         ,SWUPT_NO_NH4=grid%swupt_no_nh4 ,SWUPTC_NO_NH4=grid%swuptc_no_no3  ,SWUPTCLN_NO_NH4=grid%swuptcln_no_no3  &
+     &         ,SWDNT_NO_NH4=grid%swdnt_no_nh4 ,SWDNTC_NO_NH4=grid%swdntc_no_no3  ,SWDNTCLN_NO_NH4=grid%swdntcln_no_no3  &
+     &         ,SWUPB_NO_NH4=grid%swupb_no_nh4 ,SWUPBC_NO_NH4=grid%swupbc_no_no3  ,SWUPBCLN_NO_NH4=grid%swupbcln_no_no3  &
+     &         ,SWDNB_NO_NH4=grid%swdnb_no_nh4 ,SWDNBC_NO_NH4=grid%swdnbc_no_no3  ,SWDNBCLN_NO_NH4=grid%swdnbcln_no_no3  &
+     &         ,SWUPT_NO_OC=grid%swupt_no_oc   ,SWUPTC_NO_OC=grid%swuptc_no_no3   ,SWUPTCLN_NO_OC=grid%swuptcln_no_no3   &
+     &         ,SWDNT_NO_OC=grid%swdnt_no_oc   ,SWDNTC_NO_OC=grid%swdntc_no_no3   ,SWDNTCLN_NO_OC=grid%swdntcln_no_no3   &
+     &         ,SWUPB_NO_OC=grid%swupb_no_oc   ,SWUPBC_NO_OC=grid%swupbc_no_no3   ,SWUPBCLN_NO_OC=grid%swupbcln_no_no3   &
+     &         ,SWDNB_NO_OC=grid%swdnb_no_oc   ,SWDNBC_NO_OC=grid%swdnbc_no_no3   ,SWDNBCLN_NO_OC=grid%swdnbcln_no_no3   &
+!TO2
+!lm
      &        ,LWCF=grid%lwcf                                                  &
      &        ,SWCF=grid%swcf                                                  &
      &        ,OLR=grid%olr                                                    &
@@ -456,6 +541,40 @@ BENCH_START(rad_driver_tim)
      &        ,TAUAER600=grid%tauaer3, TAUAER999=grid%tauaer4 & ! jcb
      &        ,GAER300=grid%gaer1, GAER400=grid%gaer2, GAER600=grid%gaer3, GAER999=grid%gaer4 & ! jcb
      &        ,WAER300=grid%waer1, WAER400=grid%waer2, WAER600=grid%waer3, WAER999=grid%waer4 & ! jcb
+!lm
+     &        ,TAUAER300_NO_BC=grid%tauaer1_no_bc, TAUAER400_NO_BC=grid%tauaer2_no_bc & ! jcb
+     &        ,TAUAER600_NO_BC=grid%tauaer3_no_bc, TAUAER999_NO_BC=grid%tauaer4_no_bc & ! jcb
+     &        ,GAER300_NO_BC=grid%gaer1_no_bc, GAER400_NO_BC=grid%gaer2_no_bc         &
+     &        ,GAER600_NO_BC=grid%gaer3_no_bc, GAER999_NO_BC=grid%gaer4_no_bc         & ! jcb
+     &        ,WAER300_NO_BC=grid%waer1_no_bc, WAER400_NO_BC=grid%waer2_no_bc         & 
+     &        ,WAER600_NO_BC=grid%waer3_no_bc, WAER999_NO_BC=grid%waer4_no_bc         & ! jcb
+     &        ,TAUAER300_NO_SO4=grid%tauaer1_no_so4,TAUAER400_NO_SO4=grid%tauaer2_no_so4 & ! jcb
+     &        ,TAUAER600_NO_SO4=grid%tauaer3_no_so4,TAUAER999_NO_SO4=grid%tauaer4_no_so4 & ! jcb
+     &        ,GAER300_NO_SO4=grid%gaer1_no_so4, GAER400_NO_SO4=grid%gaer2_no_so4 &
+     &        ,GAER600_NO_SO4=grid%gaer3_no_so4, GAER999_NO_SO4=grid%gaer4_no_so4 & ! jcb
+     &        ,WAER300_NO_SO4=grid%waer1_no_so4, WAER400_NO_SO4=grid%waer2_no_so4 &
+     &        ,WAER600_NO_SO4=grid%waer3_no_so4, WAER999_NO_SO4=grid%waer4_no_so4 & ! jcb
+!lm
+!TO2
+     &        ,TAUAER300_NO_NO3=grid%tauaer1_no_no3,TAUAER400_NO_NO3=grid%tauaer2_no_no3 & ! jcb
+     &        ,TAUAER600_NO_NO3=grid%tauaer3_no_no3,TAUAER999_NO_NO3=grid%tauaer4_no_no3 & ! jcb
+     &        ,GAER300_NO_NO3=grid%gaer1_no_no3, GAER400_NO_NO3=grid%gaer2_no_no3 &
+     &        ,GAER600_NO_NO3=grid%gaer3_no_no3, GAER999_NO_NO3=grid%gaer4_no_no3 & ! jcb
+     &        ,WAER300_NO_NO3=grid%waer1_no_no3, WAER400_NO_NO3=grid%waer2_no_no3 &
+     &        ,WAER600_NO_NO3=grid%waer3_no_no3, WAER999_NO_NO3=grid%waer4_no_no3 & ! jcb
+     &        ,TAUAER300_NO_NH4=grid%tauaer1_no_nh4,TAUAER400_NO_NH4=grid%tauaer2_no_nh4 & ! jcb
+     &        ,TAUAER600_NO_NH4=grid%tauaer3_no_nh4,TAUAER999_NO_NH4=grid%tauaer4_no_nh4 & ! jcb
+     &        ,GAER300_NO_NH4=grid%gaer1_no_nh4, GAER400_NO_NH4=grid%gaer2_no_nh4 &
+     &        ,GAER600_NO_NH4=grid%gaer3_no_nh4, GAER999_NO_NH4=grid%gaer4_no_nh4 & ! jcb
+     &        ,WAER300_NO_NH4=grid%waer1_no_nh4, WAER400_NO_NH4=grid%waer2_no_nh4 &
+     &        ,WAER600_NO_NH4=grid%waer3_no_nh4, WAER999_NO_NH4=grid%waer4_no_nh4 & ! jcb
+     &        ,TAUAER300_NO_OC=grid%tauaer1_no_oc,TAUAER400_NO_OC=grid%tauaer2_no_oc & ! jcb
+     &        ,TAUAER600_NO_OC=grid%tauaer3_no_oc,TAUAER999_NO_OC=grid%tauaer4_no_oc & ! jcb
+     &        ,GAER300_NO_OC=grid%gaer1_no_oc, GAER400_NO_OC=grid%gaer2_no_oc &
+     &        ,GAER600_NO_OC=grid%gaer3_no_oc, GAER999_NO_OC=grid%gaer4_no_oc & ! jcb
+     &        ,WAER300_NO_OC=grid%waer1_no_oc, WAER400_NO_OC=grid%waer2_no_oc &
+     &        ,WAER600_NO_OC=grid%waer3_no_oc, WAER999_NO_OC=grid%waer4_no_oc & ! jcb
+!TO2
      &        ,TAUAERlw1  =grid%tauaerlw1,  TAUAERlw2=grid%tauaerlw2    & 
      &        ,TAUAERlw3  =grid%tauaerlw3,  TAUAERlw4=grid%tauaerlw4    & 
      &        ,TAUAERlw5  =grid%tauaerlw5,  TAUAERlw6=grid%tauaerlw6    & 

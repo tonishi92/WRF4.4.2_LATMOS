@@ -114,6 +114,9 @@
                  totoa_a01,totoa_a02,totoa_a03,totoa_a04,               &
                  totoa_a05,totoa_a06,totoa_a07,totoa_a08,               &
                  tauaerlw,extaerlw,                                     &
+!lm
+                 bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+!lm
                  ids,ide, jds,jde, kds,kde,                             &
                  ims,ime, jms,jme, kms,kme,                             &
                  its,ite, jts,jte, kts,kte                              )
@@ -129,6 +132,10 @@
                                   ids,ide, jds,jde, kds,kde,           &
                                   ims,ime, jms,jme, kms,kme,           &
                                   its,ite, jts,jte, kts,kte
+!lm
+   INTEGER,      INTENT(IN   ) :: bc_switch, so4_switch
+   INTEGER,      INTENT(IN   ) :: no3_switch, nh4_switch, oc_switch
+!lm
    INTEGER,      INTENT(IN   ) :: nbin_o
    REAL(KIND=8), INTENT(IN   ) :: curr_secs
    REAL,         INTENT(IN   ) :: dtstep
@@ -288,6 +295,9 @@
           radius_core, radius_wet, number_bin,                             &
           swrefindx,swrefindx_core,swrefindx_shell,                    &
           lwrefindx,lwrefindx_core,lwrefindx_shell,                    &
+!lm
+          bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch,    &
+!lm
           ids,ide, jds,jde, kds,kde,                                   &
           ims,ime, jms,jme, kms,kme,                                   &
           its,ite, jts,jte, kts,kte                                    )
@@ -544,6 +554,9 @@
         radius_core,radius_wet, number_bin,                         &
         swrefindx,swrefindx_core,swrefindx_shell,               &
         lwrefindx,lwrefindx_core,lwrefindx_shell,               &
+!lm
+        bc_switch, so4_switch, no3_switch, nh4_switch, oc_switch, &
+!lm
         ids,ide, jds,jde, kds,kde,                               &
         ims,ime, jms,jme, kms,kme,                               &
         its,ite, jts,jte, kts,kte                                )
@@ -558,6 +571,10 @@
    INTEGER, INTENT(IN   ) :: its,ite, jts,jte, kts,kte, nbin_o
    INTEGER, INTENT(IN   ) :: ims,ime, jms,jme, kms,kme
    INTEGER, INTENT(IN   ) :: ids,ide, jds,jde, kds,kde
+!lm
+   INTEGER, INTENT(IN   ) :: bc_switch, so4_switch
+   INTEGER, INTENT(IN   ) :: no3_switch, nh4_switch, oc_switch
+!lm
 
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),             &
          INTENT(IN ) ::  chem
@@ -796,18 +813,55 @@
           conv1a = (1.0/alt(i,k,j)) * 1.0e-12
 ! convert # / kg dry air to # / cc  air
           conv1b = (1.0/alt(i,k,j)) * 1.0e-6
-          l=lptr_so4_aer(isize,itype,iphase)
-          if (l .ge. p1st)  mass_so4= chem(i,k,j,l)*conv1a
-          l=lptr_no3_aer(isize,itype,iphase)
-          if (l .ge. p1st)  mass_no3= chem(i,k,j,l)*conv1a
-          l=lptr_nh4_aer(isize,itype,iphase)
-          if (l .ge. p1st)  mass_nh4= chem(i,k,j,l)*conv1a
+!lm          l=lptr_so4_aer(isize,itype,iphase)
+!lm          if (l .ge. p1st)  mass_so4= chem(i,k,j,l)*conv1a
+!lm          l=lptr_no3_aer(isize,itype,iphase)
+!lm          if (l .ge. p1st)  mass_no3= chem(i,k,j,l)*conv1a
+!lm          l=lptr_nh4_aer(isize,itype,iphase)
+!lm          if (l .ge. p1st)  mass_nh4= chem(i,k,j,l)*conv1a
           l=lptr_oin_aer(isize,itype,iphase)
           if (l .ge. p1st)  mass_oin= chem(i,k,j,l)*conv1a
 !
 ! if totoa from VBS available, use it
 !jdfcz    l=lptr_dust_aer(isize,itype,iphase)
 !jdfcz    if (l .ge. p1st)  mass_dust= chem(i,k,j,l)*conv1a
+!lm          l=lptr_oc_aer(isize,itype,iphase)
+!lm          if (l .ge. p1st)  mass_oc= chem(i,k,j,l)*conv1a
+!lm          if (totoa_a01(i,k,j) .gt. 1.0e-12 .and. isize .eq. 1) mass_oc=totoa_a01(i,k,j)*conv1a
+!lm          if (totoa_a02(i,k,j) .gt. 1.0e-12 .and. isize .eq. 2) mass_oc=totoa_a02(i,k,j)*conv1a
+!lm          if (totoa_a03(i,k,j) .gt. 1.0e-12 .and. isize .eq. 3) mass_oc=totoa_a03(i,k,j)*conv1a
+!lm          if (totoa_a04(i,k,j) .gt. 1.0e-12 .and. isize .eq. 4) mass_oc=totoa_a04(i,k,j)*conv1a
+!lm          if (totoa_a05(i,k,j) .gt. 1.0e-12 .and. isize .eq. 5) mass_oc=totoa_a05(i,k,j)*conv1a
+!lm          if (totoa_a06(i,k,j) .gt. 1.0e-12 .and. isize .eq. 6) mass_oc=totoa_a06(i,k,j)*conv1a
+!lm          if (totoa_a07(i,k,j) .gt. 1.0e-12 .and. isize .eq. 7) mass_oc=totoa_a07(i,k,j)*conv1a
+!lm          if (totoa_a08(i,k,j) .gt. 1.0e-12 .and. isize .eq. 8) mass_oc=totoa_a08(i,k,j)*conv1a
+!
+!lm If bc_switch is 0, set mass_bc to 0 to calculate the bc optical
+!properties and radiative effect (in radiation_driver). Same for SO4
+          l=lptr_bc_aer(isize,itype,iphase)
+          if (l .ge. p1st)  mass_bc= chem(i,k,j,l)*conv1a
+          if (bc_switch .eq. 0) then
+            if (l .ge. p1st)  mass_bc= 0.
+          endif
+!SO4
+          l=lptr_so4_aer(isize,itype,iphase)
+          if (l .ge. p1st)  mass_so4= chem(i,k,j,l)*conv1a
+          if (so4_switch .eq. 0) then
+            if (l .ge. p1st)  mass_so4= 0.
+          endif
+!NO3
+          l=lptr_no3_aer(isize,itype,iphase)
+          if (l .ge. p1st)  mass_no3= chem(i,k,j,l)*conv1a
+          if (no3_switch .eq. 0) then
+            if (l .ge. p1st)  mass_no3= 0.
+          endif
+!NH4
+          l=lptr_nh4_aer(isize,itype,iphase)
+          if (l .ge. p1st)  mass_nh4= chem(i,k,j,l)*conv1a
+          if (nh4_switch .eq. 0) then
+            if (l .ge. p1st)  mass_nh4= 0.
+          endif
+!OC 
           l=lptr_oc_aer(isize,itype,iphase)
           if (l .ge. p1st)  mass_oc= chem(i,k,j,l)*conv1a
           if (totoa_a01(i,k,j) .gt. 1.0e-12 .and. isize .eq. 1) mass_oc=totoa_a01(i,k,j)*conv1a
@@ -818,9 +872,11 @@
           if (totoa_a06(i,k,j) .gt. 1.0e-12 .and. isize .eq. 6) mass_oc=totoa_a06(i,k,j)*conv1a
           if (totoa_a07(i,k,j) .gt. 1.0e-12 .and. isize .eq. 7) mass_oc=totoa_a07(i,k,j)*conv1a
           if (totoa_a08(i,k,j) .gt. 1.0e-12 .and. isize .eq. 8) mass_oc=totoa_a08(i,k,j)*conv1a
-!
-          l=lptr_bc_aer(isize,itype,iphase)
-          if (l .ge. p1st)  mass_bc= chem(i,k,j,l)*conv1a
+          if (oc_switch .eq. 0) then
+            if (l .ge. p1st)  mass_oc= 0.
+          endif
+
+!lm
           l=lptr_na_aer(isize,itype,iphase)
           if (l .ge. p1st)  mass_na= chem(i,k,j,l)*conv1a
           l=lptr_cl_aer(isize,itype,iphase)
@@ -880,6 +936,15 @@
 ! of these quantities.
           num_a_lo=1.90985*vol_dry_a/(dlo_sect(isize,itype)**3)
           num_a_hi=1.90985*vol_dry_a/(dhi_sect(isize,itype)**3)
+
+!lm Correct the aerosol number when doing the optical properties without BC or SO4
+          IF (bc_switch .EQ. 0) num_a = num_a - 1.90985 * vol_bc/(dcen_sect(isize,itype)**3)
+          IF (so4_switch .EQ. 0) num_a = num_a - 1.90985 * vol_so4/(dcen_sect(isize,itype)**3)
+          IF (no3_switch .EQ. 0) num_a = num_a - 1.90985 * vol_no3/(dcen_sect(isize,itype)**3)
+          IF (nh4_switch .EQ. 0) num_a = num_a - 1.90985 * vol_nh4/(dcen_sect(isize,itype)**3)
+          IF (oc_switch .EQ. 0) num_a = num_a - 1.90985 * vol_oc/(dcen_sect(isize,itype)**3)
+          num_a = amax1(num_a,0.)
+!lm
 
 !czhao fixed the diameter when mass and number of aerosols drops to an extreme low values
         if (vol_dry_a.le.1.e-15.and.num_a.le.1.e-10) then  
@@ -4698,19 +4763,19 @@ END subroutine optical_prep_modal_soa_vbs
 ! check for refr and refi outside of lookup table range to prevent unstable extrapolation 'binterp' below
           if (refr < refrtabsw(1,ns)) then
              refr = refrtabsw(1,ns)
-             write(*,*), 'Warning: refr is smaller than lookup table range and reset to minimum bound at SW band ', ns
+             !write(*,*), 'Warning: refr is smaller than lookup table range and reset to minimum bound at SW band ', ns
           endif
           if (refr > refrtabsw(prefr,ns)) then
              refr = refrtabsw(prefr,ns)
-             write(*,*), 'Warning: refr is larger than lookup table range and reset to maximum bound at SW band ', ns
+             !write(*,*), 'Warning: refr is larger than lookup table range and reset to maximum bound at SW band ', ns
           endif
           if (refi < refitabsw(1,ns)) then
              refi = refitabsw(1,ns)
-             write(*,*), 'Warning: refi is smaller than lookup table range and reset to minimum bound at SW band ', ns
+             !write(*,*), 'Warning: refi is smaller than lookup table range and reset to minimum bound at SW band ', ns
           endif
           if (refi > refitabsw(prefi,ns)) then
              refi = refitabsw(prefi,ns)
-             write(*,*), 'Warning: refi is larger than lookup table range and reset to maximum bound at SW band ', ns
+             !write(*,*), 'Warning: refi is larger than lookup table range and reset to maximum bound at SW band ', ns
           endif
 
 ! interpolate coefficients linear in refractive index
@@ -4973,19 +5038,19 @@ END subroutine optical_prep_modal_soa_vbs
 ! check for refr and refi outside of lookup table range to prevent unstable extrapolation 'binterp' below
           if (refr < refrtablw(1,ns)) then
              refr = refrtablw(1,ns)
-             write(*,*), 'Warning: refr is smaller than lookup table range and reset to minimum bound at LW band ', ns
+             !write(*,*), 'Warning: refr is smaller than lookup table range and reset to minimum bound at LW band ', ns
           endif
           if (refr > refrtablw(prefr,ns)) then
              refr = refrtablw(prefr,ns)
-             write(*,*), 'Warning: refr is larger than lookup table range and reset to maximum bound at LW band ', ns
+             !write(*,*), 'Warning: refr is larger than lookup table range and reset to maximum bound at LW band ', ns
           endif
           if (refi < refitablw(1,ns)) then    
              refi = refitablw(1,ns)
-             write(*,*), 'Warning: refi is smaller than lookup table range and reset to minimum bound at LW band ', ns
+             !write(*,*), 'Warning: refi is smaller than lookup table range and reset to minimum bound at LW band ', ns
           endif
           if (refi > refitablw(prefi,ns)) then
              refi = refitablw(prefi,ns)
-             write(*,*), 'Warning: refi is larger than lookup table range and reset to maximum bound at LW band ', ns
+             !write(*,*), 'Warning: refi is larger than lookup table range and reset to maximum bound at LW band ', ns
           endif
 
 ! interpolate coefficients linear in refractive index

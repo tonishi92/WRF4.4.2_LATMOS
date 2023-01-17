@@ -1825,8 +1825,12 @@ endif
          enddo
 
          CALL chem_init (grid%id,chem,emis_ant,scalar,grid%dt,grid%bioemdt,grid%photdt,     &
-                         grid%chemdt,                                       &
-                         grid%stepbioe,grid%stepphot,grid%stepchem,grid%stepfirepl,      &
+!lm                         grid%chemdt,                                       &
+!lm                         grid%stepbioe,grid%stepphot,grid%stepchem,grid%stepfirepl,      &
+                         grid%chemdt,grid%radeffectdt,                                      &
+                         grid%stepbioe,grid%stepphot,grid%stepchem,grid%stepradeffect,      &
+                         grid%stepfirepl,                                                   &
+!lm
                          grid%plumerisefire_frq,z_at_w,grid%xlat,grid%xlong,g,           &
                          grid%aerwrf,config_flags,grid,            &
                          grid%alt,grid%t_1,grid%p,convfac,grid%ttday,grid%tcosz,         &
@@ -1834,6 +1838,23 @@ endif
                          grid%tauaer1,grid%tauaer2,grid%tauaer3,grid%tauaer4,                   &
                          grid%gaer1,grid%gaer2,grid%gaer3,grid%gaer4,                           &
                          grid%waer1,grid%waer2,grid%waer3,grid%waer4,                           &
+!lm
+                         grid%tauaer1_no_bc,grid%tauaer2_no_bc,grid%tauaer3_no_bc,grid%tauaer4_no_bc, &
+                         grid%gaer1_no_bc,grid%gaer2_no_bc,grid%gaer3_no_bc,grid%gaer4_no_bc, &
+                         grid%waer1_no_bc,grid%waer2_no_bc,grid%waer3_no_bc,grid%waer4_no_bc, &
+                         grid%tauaer1_no_so4,grid%tauaer2_no_so4,grid%tauaer3_no_so4,grid%tauaer4_no_so4, &
+                         grid%gaer1_no_so4,grid%gaer2_no_so4,grid%gaer3_no_so4,grid%gaer4_no_so4, &
+                         grid%waer1_no_so4,grid%waer2_no_so4,grid%waer3_no_so4,grid%waer4_no_so4, &
+                         grid%tauaer1_no_no3,grid%tauaer2_no_no3,grid%tauaer3_no_no3,grid%tauaer4_no_no3, &
+                         grid%gaer1_no_no3,grid%gaer2_no_no3,grid%gaer3_no_no3,grid%gaer4_no_no3, &
+                         grid%waer1_no_no3,grid%waer2_no_no3,grid%waer3_no_no3,grid%waer4_no_no3, &
+                         grid%tauaer1_no_nh4,grid%tauaer2_no_nh4,grid%tauaer3_no_nh4,grid%tauaer4_no_nh4, &
+                         grid%gaer1_no_nh4,grid%gaer2_no_nh4,grid%gaer3_no_nh4,grid%gaer4_no_nh4, &
+                         grid%waer1_no_nh4,grid%waer2_no_nh4,grid%waer3_no_nh4,grid%waer4_no_nh4, &
+                         grid%tauaer1_no_oc,grid%tauaer2_no_oc,grid%tauaer3_no_oc,grid%tauaer4_no_oc, &
+                         grid%gaer1_no_oc,grid%gaer2_no_oc,grid%gaer3_no_oc,grid%gaer4_no_oc, &
+                         grid%waer1_no_oc,grid%waer2_no_oc,grid%waer3_no_oc,grid%waer4_no_oc, &
+!lm
                          grid%l2aer,grid%l3aer,grid%l4aer,grid%l5aer,grid%l6aer,grid%l7aer,     &
                          grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,           &
                          grid%extaerlw5,grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,           &

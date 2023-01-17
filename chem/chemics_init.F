@@ -7,12 +7,35 @@
 !lm 2015/07: diagnosis variables for accumulated BC deposition, dry_dep_bc and
 !wet_dep_bc, are initialized here to zero
 !
-   subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,chemdt,stepbioe, &
-               stepphot,stepchem,stepfirepl,plumerisefire_frq,z_at_w,xlat,xlong,    &
+   subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,  &
+!lm               chemdt,                                               &
+!lm               stepbioe,stepphot,stepchem,stepfirepl,                &
+               chemdt,radeffectdt,                                      &
+               stepbioe,stepphot,stepchem,stepradeffect,      &
+               stepfirepl,                                                   &
+!lm
+               plumerisefire_frq,z_at_w,xlat,xlong,    &
                g,aerwrf,config_flags,grid,alt,t,p,CONVFAC,ttday,tcosz,julday,gmt,   &
                tauaer1,tauaer2,tauaer3,tauaer4,                      &
                gaer1,gaer2,gaer3,gaer4,                              &
                waer1,waer2,waer3,waer4,                              &
+!lm
+               tauaer1_no_bc,tauaer2_no_bc,tauaer3_no_bc,tauaer4_no_bc, &
+               gaer1_no_bc,gaer2_no_bc,gaer3_no_bc,gaer4_no_bc, &
+               waer1_no_bc,waer2_no_bc,waer3_no_bc,waer4_no_bc, &
+               tauaer1_no_so4,tauaer2_no_so4,tauaer3_no_so4,tauaer4_no_so4, &
+               gaer1_no_so4,gaer2_no_so4,gaer3_no_so4,gaer4_no_so4, &
+               waer1_no_so4,waer2_no_so4,waer3_no_so4,waer4_no_so4, &
+               tauaer1_no_no3,tauaer2_no_no3,tauaer3_no_no3,tauaer4_no_no3, &
+               gaer1_no_no3,gaer2_no_no3,gaer3_no_no3,gaer4_no_no3, &
+               waer1_no_no3,waer2_no_no3,waer3_no_no3,waer4_no_no3, &
+               tauaer1_no_nh4,tauaer2_no_nh4,tauaer3_no_nh4,tauaer4_no_nh4, &
+               gaer1_no_nh4,gaer2_no_nh4,gaer3_no_nh4,gaer4_no_nh4, &
+               waer1_no_nh4,waer2_no_nh4,waer3_no_nh4,waer4_no_nh4, &
+               tauaer1_no_oc,tauaer2_no_oc,tauaer3_no_oc,tauaer4_no_oc, &
+               gaer1_no_oc,gaer2_no_oc,gaer3_no_oc,gaer4_no_oc, &
+               waer1_no_oc,waer2_no_oc,waer3_no_oc,waer4_no_oc, &
+!lm
                l2aer,l3aer,l4aer,l5aer,l6aer,l7aer,                  &
                extaerlw1,extaerlw2,extaerlw3,extaerlw4,              &
                extaerlw5,extaerlw6,extaerlw7,extaerlw8,              &
@@ -79,7 +102,9 @@
 
    IMPLICIT NONE
 
-   real  , intent(in) :: bioemdt,photdt,chemdt,dt,gmt
+!lm   real  , intent(in) :: bioemdt,photdt,chemdt,dt,gmt
+   real  , intent(in) :: bioemdt,photdt,chemdt,radeffectdt,dt,gmt
+!lm
    INTEGER,      INTENT(IN   ) :: plumerisefire_frq
    INTEGER,      INTENT(IN   ) :: chem_in_opt
    INTEGER,      INTENT(INOUT) :: num_vert_mix
@@ -119,6 +144,25 @@
                                dgnumwet_a1, dgnumwet_a2, dgnumwet_a3
 !-- end dgnum restart arrays
 
+!lm
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,         &
+          INTENT(INOUT   ) ::                                        &
+                      tauaer1_no_bc,tauaer2_no_bc,tauaer3_no_bc,tauaer4_no_bc,      &
+                      gaer1_no_bc,gaer2_no_bc,gaer3_no_bc,gaer4_no_bc,              &
+                      waer1_no_bc,waer2_no_bc,waer3_no_bc,waer4_no_bc,              &
+                      tauaer1_no_so4,tauaer2_no_so4,tauaer3_no_so4,tauaer4_no_so4,      &
+                      gaer1_no_so4,gaer2_no_so4,gaer3_no_so4,gaer4_no_so4,              &
+                      waer1_no_so4,waer2_no_so4,waer3_no_so4,waer4_no_so4,              &
+                      tauaer1_no_no3,tauaer2_no_no3,tauaer3_no_no3,tauaer4_no_no3,      &
+                      gaer1_no_no3,gaer2_no_no3,gaer3_no_no3,gaer4_no_no3,              &
+                      waer1_no_no3,waer2_no_no3,waer3_no_no3,waer4_no_no3,              &
+                      tauaer1_no_nh4,tauaer2_no_nh4,tauaer3_no_nh4,tauaer4_no_nh4,      &
+                      gaer1_no_nh4,gaer2_no_nh4,gaer3_no_nh4,gaer4_no_nh4,              &
+                      waer1_no_nh4,waer2_no_nh4,waer3_no_nh4,waer4_no_nh4,              &
+                      tauaer1_no_oc,tauaer2_no_oc,tauaer3_no_oc,tauaer4_no_oc,      &
+                      gaer1_no_oc,gaer2_no_oc,gaer3_no_oc,gaer4_no_oc,              &
+                      waer1_no_oc,waer2_no_oc,waer3_no_oc,waer4_no_oc
+!lm
    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , 1:4 )   ,         &
           INTENT(INOUT   ) ::                                        &
                                l2aer,l3aer,l4aer,l5aer,l6aer,l7aer
@@ -141,7 +185,9 @@
           INTENT(INOUT   ) ::                                        &
                                ttday,tcosz,xlat,xlong
    real, INTENT (IN) :: g
-   integer, intent(out) :: stepbioe,stepphot,stepchem,stepfirepl
+!lm   integer, intent(out) :: stepbioe,stepphot,stepchem,stepfirepl
+   integer, intent(out) :: stepbioe,stepphot,stepchem,stepradeffect,stepfirepl
+!lm
    TYPE (grid_config_rec_type) , INTENT (in) ::     config_flags
    TYPE(domain) ,             INTENT (inout) ::     grid
    
@@ -537,6 +583,68 @@ ENDIF
                 waer2(i,k,j) = 0.
                 waer3(i,k,j) = 0.
                 waer4(i,k,j) = 0.
+!lm
+                tauaer1_no_bc(i,k,j) = 0.
+                tauaer2_no_bc(i,k,j) = 0.
+                tauaer3_no_bc(i,k,j) = 0.
+                tauaer4_no_bc(i,k,j) = 0.
+                gaer1_no_bc(i,k,j) = 0.
+                gaer2_no_bc(i,k,j) = 0.
+                gaer3_no_bc(i,k,j) = 0.
+                gaer4_no_bc(i,k,j) = 0.
+                waer1_no_bc(i,k,j) = 0.
+                waer2_no_bc(i,k,j) = 0.
+                waer3_no_bc(i,k,j) = 0.
+                waer4_no_bc(i,k,j) = 0.
+                tauaer1_no_so4(i,k,j) = 0.
+                tauaer2_no_so4(i,k,j) = 0.
+                tauaer3_no_so4(i,k,j) = 0.
+                tauaer4_no_so4(i,k,j) = 0.
+                gaer1_no_so4(i,k,j) = 0.
+                gaer2_no_so4(i,k,j) = 0.
+                gaer3_no_so4(i,k,j) = 0.
+                gaer4_no_so4(i,k,j) = 0.
+                waer1_no_so4(i,k,j) = 0.
+                waer2_no_so4(i,k,j) = 0.
+                waer3_no_so4(i,k,j) = 0.
+                waer4_no_so4(i,k,j) = 0.
+                tauaer1_no_no3(i,k,j) = 0.
+                tauaer2_no_no3(i,k,j) = 0.
+                tauaer3_no_no3(i,k,j) = 0.
+                tauaer4_no_no3(i,k,j) = 0.
+                gaer1_no_no3(i,k,j) = 0.
+                gaer2_no_no3(i,k,j) = 0.
+                gaer3_no_no3(i,k,j) = 0.
+                gaer4_no_no3(i,k,j) = 0.
+                waer1_no_no3(i,k,j) = 0.
+                waer2_no_no3(i,k,j) = 0.
+                waer3_no_no3(i,k,j) = 0.
+                waer4_no_no3(i,k,j) = 0.
+                tauaer1_no_nh4(i,k,j) = 0.
+                tauaer2_no_nh4(i,k,j) = 0.
+                tauaer3_no_nh4(i,k,j) = 0.
+                tauaer4_no_nh4(i,k,j) = 0.
+                gaer1_no_nh4(i,k,j) = 0.
+                gaer2_no_nh4(i,k,j) = 0.
+                gaer3_no_nh4(i,k,j) = 0.
+                gaer4_no_nh4(i,k,j) = 0.
+                waer1_no_nh4(i,k,j) = 0.
+                waer2_no_nh4(i,k,j) = 0.
+                waer3_no_nh4(i,k,j) = 0.
+                waer4_no_nh4(i,k,j) = 0.
+                tauaer1_no_oc(i,k,j) = 0.
+                tauaer2_no_oc(i,k,j) = 0.
+                tauaer3_no_oc(i,k,j) = 0.
+                tauaer4_no_oc(i,k,j) = 0.
+                gaer1_no_oc(i,k,j) = 0.
+                gaer2_no_oc(i,k,j) = 0.
+                gaer3_no_oc(i,k,j) = 0.
+                gaer4_no_oc(i,k,j) = 0.
+                waer1_no_oc(i,k,j) = 0.
+                waer2_no_oc(i,k,j) = 0.
+                waer3_no_oc(i,k,j) = 0.
+                waer4_no_oc(i,k,j) = 0.
+!lm
                 l2aer(i,k,j,1) = 0.
                 l2aer(i,k,j,2) = 0.
                 l2aer(i,k,j,3) = 0.
