@@ -91,6 +91,9 @@ state    real  e_so4i         i+jf     emis_ant     1         Z      i5r     "E_
 state    real  e_so4j         i+jf     emis_ant     1         Z      i5r     "E_SO4J"              "EMISSION RATE OF J-MODE ORG. AER."   "ug/m3 m/s"
 state    real  e_no3i         i+jf     emis_ant     1         Z      i5r     "E_NO3I"              "EMISSION RATE OF I-MODE ORG. AER."   "ug/m3 m/s"
 state    real  e_no3j         i+jf     emis_ant     1         Z      i5r     "E_NO3J"              "EMISSION RATE OF J-MODE ORG. AER."   "ug/m3 m/s"
+#lm Add the DMS oceanic content to emis_ant (should be in another external file since this is not "Anthropogenic"), used in nightingale_dmsemis
+state    real  e_dms_oc       i+jf     emis_ant     1         Z      i5r     "E_DMS_OC"            "OCEANIC DMS CONTENT"          "mol m^-3"
+#lm
 # Additional MOZART emission variables...
 state    real  e_nh4i         i+jf     emis_ant     1         Z      i5r     "E_NH4I"              "EMISSION RATE OF I-MODE ORG. AER."   "ug/m3 m/s"
 state    real  e_nh4j         i+jf     emis_ant     1         Z      i5r     "E_NH4J"              "EMISSION RATE OF J-MODE ORG. AER."   "ug/m3 m/s"
@@ -682,7 +685,8 @@ state    real  ebio_nc4h10    ij      misc        1         -      -        "ebi
 state    real  ebio_co2oce    ij      misc        1         -      i06rh    "ebio_co2oce"      "Ocean  CO2 fluxes"  "mol km^-2 hr^-1"
 
 state    real  dust_flux      ij      misc        1         -      rdu      "dust_flux"        "Dust flux from soil" "ug m^-2 s^-1"
-state    real  seas_flux      ij      misc        1         -      rdu      "seas_flux"        "Sea salt flux"       "ug m^-2 s^-1"
+##state    real  seas_flux      ij      misc        1         -      rdu      "seas_flux"        "Sea salt flux"       "ug m^-2 s^-1"
+state    real  seas_flux      ij      chem        1         -      i0{12}rhusdf=(bdy_interp:dt)     "seas_flux"        "Sea salt flux"       "ug m^-2 s^-1"
 
 # SESQ and MBO fluxes for the new SOA_VBS mechanism
 state    real  sebio_sesq     ij      misc        1         -      i06r     "sebio_sesq"       "Reference biog emiss"  "mol km^-2 hr^-1"
@@ -4093,6 +4097,9 @@ rconfig   integer     dust_opt            namelist,chem          1              
 rconfig   integer     dust_schme          namelist,chem          1              2       rh    "dust_schme"       ""      ""
 rconfig   integer     dmsemis_opt         namelist,chem          1              0       rh    "dmsemis_opt"         ""      ""
 rconfig   integer     seas_opt            namelist,chem          1              0       rh    "seas_opt"            ""      ""
+#LI add a namelist option link to SSA updates (seas_opt = 2,3,4)
+rconfig   integer     seas_updates        namelist,chem          max_domains    0       rh    "seas_updates"            ""      ""
+###LI
 rconfig   integer     bio_emiss_opt       namelist,chem          max_domains    0       rh    "bio_emiss_opt"       ""      ""
 rconfig   integer     biomass_burn_opt    namelist,chem          max_domains    0       rh    "biomass_burn_opt"    ""      ""
 rconfig   integer     plumerisefire_frq   namelist,chem          max_domains    180     rh    "plumerisefire_frq"   ""      ""

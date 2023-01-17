@@ -24,9 +24,9 @@ CONTAINS
          ebu, ebu_in,mean_fct_agtf,mean_fct_agef,                          &
          mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,          &
          firesize_agsv,firesize_aggr,                                      &
-         u10,v10,ivgtyp,isltyp,gsw,vegfra,rmol,ust,znt,dms_0,              &
+         u10,v10,sst,ivgtyp,isltyp,gsw,vegfra,rmol,ust,znt,dms_0,              &
          erup_beg,erup_end,                                                &
-         xland,xlat,xlong,z_at_w,z,smois,dustin,seasin,                    &
+         xland,xice,xlat,xlong,z_at_w,z,smois,dustin,seasin,                    &
          sebio_iso,sebio_oli,sebio_api,sebio_lim,sebio_xyl,                &
          sebio_hc3,sebio_ete,sebio_olt,sebio_ket,sebio_ald,                &   
          sebio_hcho,sebio_eth,sebio_ora2,sebio_co,sebio_nr,                &
@@ -185,11 +185,13 @@ CONTAINS
           INTENT(IN   ) ::                                                 &
                                                      u10,                  &
                                                      v10,                  &
+                                                     sst,                  &
                                                      gsw,                  &
                                                   vegfra,                  &
                                                      rmol,                 &
                                                      ust,                  &
                                                      xland,                &
+                                                     xice,                 &
                                                      xlat,                 &
                                                      xlong,                &
                                                      znt,                  &
@@ -1620,9 +1622,9 @@ CONTAINS
           CRI_MOSAIC_8BIN_AQ_KPP, CRI_MOSAIC_4BIN_AQ_KPP,SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP, &
           SAPRC99_MOSAIC_8BIN_VBS2_KPP   )
        call wrf_debug(15,'emissions_driver calling mosaic_addemiss')
-       call mosaic_addemiss( id, dtstep, u10, v10, alt, dz8w, xland,     &
-            config_flags, chem, slai, ust, smois, ivgtyp, isltyp,        &
-            emis_ant,ebu,config_flags%biomass_burn_opt,                  &
+       call mosaic_addemiss( id, dtstep, u10, v10, sst, alt, dz8w, xland,     &
+            xice,xlat,xlong,config_flags, chem, slai, ust, smois,        &
+            ivgtyp, isltyp, emis_ant,ebu,config_flags%biomass_burn_opt,  &
             config_flags%dust_opt,                                       &
             ktau,u_phy,v_phy,rho_phy,g,dx,erod,                          &
             dust_emiss_active, seasalt_emiss_active,                     &

@@ -28,9 +28,9 @@ CONTAINS
 
 
 !----------------------------------------------------------------------
-   subroutine mosaic_addemiss( id, dtstep, u10, v10, alt, dz8w, xland,     &
-               config_flags, chem, slai, ust, smois, ivgtyp, isltyp,       &
-               emis_ant,ebu,biom_active,dust_opt,                          &
+   subroutine mosaic_addemiss( id, dtstep, u10, v10, sst, alt, dz8w, xland,     &
+               xice,xlat,xlong,config_flags, chem, slai, ust, &
+               smois, ivgtyp, isltyp,emis_ant,ebu,biom_active,dust_opt,     &
                !czhao  
                 ktau, u_phy,v_phy,rho_phy,g,dx,erod,                        &
                dust_emiss_active, seasalt_emiss_active,                    &
@@ -80,7 +80,7 @@ CONTAINS
 
 ! 10-m wind speed components (m/s)
    REAL,  DIMENSION( ims:ime , jms:jme )         ,                         &
-          INTENT(IN   ) ::   u10, v10, xland, slai, ust
+          INTENT(IN   ) ::   u10, v10, xland, sst, slai, ust, xice, xlat, xlong 
    INTEGER,  DIMENSION( ims:ime , jms:jme )      ,                         &
           INTENT(IN   ) ::   ivgtyp, isltyp
 
@@ -714,8 +714,8 @@ size_loop: &
 ! do seasalt emissions
 	if (seasalt_emiss_active > 0)   &
 	    call mosaic_seasalt_emiss(                                     &
-               id, dtstep, u10, v10, alt, dz8w, xland, config_flags, chem, &
-               seas_flux,                                                  &
+               id, dtstep, u10, v10, sst, alt, dz8w, xland,xice,xlat,xlong,&
+               u_phy,v_phy,config_flags, chem, seas_flux,                  &
                ids,ide, jds,jde, kds,kde,                                  &
                ims,ime, jms,jme, kms,kme,                                  &
                its,ite, jts,jte, kts,kte, seasalt_emiss_active             )
@@ -762,8 +762,8 @@ size_loop: &
 
 !----------------------------------------------------------------------
    subroutine mosaic_seasalt_emiss(                                        &
-               id, dtstep, u10, v10, alt, dz8w, xland, config_flags, chem, &
-               seas_flux,                                                  &
+               id, dtstep, u10, v10, sst,alt, dz8w, xland,xice,xlat,xlong, &
+               u_phy,v_phy,config_flags, chem,seas_flux,                   &
                ids,ide, jds,jde, kds,kde,                                  &
                ims,ime, jms,jme, kms,kme,                                  &
                its,ite, jts,jte, kts,kte, seasalt_emiss_active             )
@@ -791,8 +791,8 @@ size_loop: &
 
 ! 10-m wind speed components (m/s)
    REAL,  DIMENSION( ims:ime , jms:jme ),                                  &
-          INTENT(IN   ) ::   u10, v10, xland
-
+          INTENT(IN   ) ::   u10, v10, xland, xice, sst, xlat, xlong
+  REAL,  DIMENSION( ims:ime , jms:jme ) :: u_1st, v_1st
 ! trace species mixing ratios (aerosol mass = ug/kg; number = #/kg)
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),                 &
          INTENT(INOUT ) ::   chem
@@ -800,22 +800,38 @@ size_loop: &
 ! alt  = 1.0/(dry air density) in (m3/kg)
 ! dz8w = layer thickness in (m)
    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,               &
-          INTENT(IN   ) ::   alt, dz8w
+          INTENT(IN   ) ::   alt, dz8w, u_phy, v_phy
 
    REAL, DIMENSION( ims:ime, jms:jme ), INTENT(OUT) :: seas_flux
 
 ! local variables
-	integer i, j, k, l, l_na, l_cl, n, l_oc
+	integer i, j, k, l, l_na, l_cl, n, l_oc, l_so4
 	integer iphase, itype
 	integer p1st
-
-	real dum, dumdlo, dumdhi, dumoceanfrac, dumspd10
-	real factaa, factbb, fracna, fraccl, fracorg
-
+        
+	real dum, dumdlo, dumdhi, dumoceanfrac, dumspd_1st, dumspd10_sali, gama_sst, whitecap_10
+	real factaa, factbb, fracna, fraccl, fracorg, fraction_water_in_sea_ice, fracssso4, total_frac
+        real xice_thres,drydens,dumspd_18,dumspd_russell,dumspd10,sea_ice_fraction
+        real correction_factor_Na,correction_factor_Cl,correction_factor_OC,correction_factor_number
+        real Cl1_russell,Na1_russell,OM1sea_russell
+        real alpha_interpolated,beta_interpolated
 	real :: ssemfact_numb( maxd_asize, maxd_atype )
 	real :: ssemfact_mass( maxd_asize, maxd_atype )
-
-
+        !Updated - DEC 2020
+        !set parameters for SST conversion from K to Celcious
+        real :: x1,x2,x3,x4
+        parameter (x1 = 271.15 - 273.15)
+        parameter (x2 = 278.15 - 273.15)
+        parameter (x3 = 288.15 - 273.15)
+        parameter (x4 = 303.15 - 273.15)
+        real :: correction_factor_sofiev(maxd_asize)
+        integer ncompo_russel !(Na, Cl, organic)
+        parameter (ncompo_russel = 3)   
+        real :: ssemfact_masscor( maxd_asize, maxd_atype, ncompo_russel)
+        real :: sum_submicro_na, sum_submicro_cl, sum_submicro_oc
+        real :: dummy, rmass_inc_submicro, frac_bin5
+        integer :: icorrection_russell, icorrection_sst, icorrection_sofiev_sst, icorrection_local_organics_Arctic
+        integer :: icorrection_whitecap
 	! Factors for Fuentes et al (ACP, 2011, doi:10.5194/acp-11-2585-2011) 
 	!                                              seasalt emission scheme.
 	! These are for calculating the seawater_OC content dependent factors.
@@ -831,6 +847,28 @@ size_loop: &
                  (/ -13.916, 35.73, -9.7651, 1.1665 /)
     real, save :: beta_f3(4) =   &
                  (/ 4747.8, 12920.0, 7313.4, 6610.0 /)
+    real, save :: alpha_sst(4) = &
+                 (/ 0.092, 0.15, 0.48, 1.0 /)
+    real, save :: beta_sst(4) = &
+                 (/ -0.96, -0.88, -0.36, 0.0 /)
+         !These are for Sofiev SST correction 
+   real, save :: lower_particle_diameter_per_bin(8) = &
+                 (/ 0.0391, 0.0781, 0.1562, 0.3125, 0.6250, 1.250, 2.50, 5.00 /)
+    real, save :: upper_particle_diameter_per_bin(8) = &
+                 (/ 0.0781, 0.1562, 0.3125, 0.6250, 1.250,  2.50,  5.00, 10.00 /) 
+    real, save :: mid_point_particle_diameter_per_bin(8) = &
+                 (/ 0.0586, 0.11715, 0.23435, 0.46875, 0.9375, 1.875, 3.75, 7.5 /)
+    real, save :: array_default_values_per_bin_for_sst_lower_minus_2C(8) = &
+                 (/ 1.42, 0.73, 0.37, 0.19, 0.10, 5.15e-02, 2.65e-02, 1.37e-02/)
+    real, save :: array_default_values_per_bin_for_sst_greater_30C(8) = &
+                 (/ 0.9, 1.0, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8/)
+        !array_default_values_per_bin_for_sst_lower_minus_2C derived from the modelled results for Sofiev correction factor when SST
+        !between -2 and 5C. Similar approach to what we did for jaegle sst correction factor (assign the lowest value for low
+        !temperatures)
+        !array_default_values_per_bin_for_sst_greater_30C: a rough estimation following Fig.2 Barthel et al. 2019 for high
+        !temperatures. Need to run the model and check correction factor when SST = 30C
+        !alpha_sst & beta_sst: 4 values for different SST values SST = [-2,5,15,25] (Based on Barthel et al. 2019 & derived from
+        !Sofiev et al. 2011 parametrization)
 	real :: nti(4), dp0gi(4)
 	! seawater OC<0.2um concentration (in uM) - first is for low activity, the 2nd for high activity
 	!    High activity conc is from the average for RHaMBLe cruise in high activity regions
@@ -845,6 +883,70 @@ size_loop: &
 	
 
     p1st = PARAM_FIRST_SCALAR
+    
+!!!!add the namelist options
+!!!seas_updates = 0 then original code is used; role of xice, Salisbury whitecap and organics only from Fuentes (seas_opt = 3 or 4)!
+!TO2
+       if(config_flags%seas_updates==0) then
+               icorrection_russell = 0
+               icorrection_sst = 0
+               icorrection_sofiev_sst = 0
+               icorrection_local_organics_Arctic = 0
+               icorrection_whitecap = 1
+       endif
+!TO2
+
+       if(config_flags%seas_updates==101) then
+               icorrection_russell = 1
+               icorrection_sst = 1
+               icorrection_sofiev_sst = 0
+               icorrection_local_organics_Arctic = 1
+               icorrection_whitecap = 1
+       endif
+
+       if(config_flags%seas_updates==102) then
+               icorrection_russell = 1
+               icorrection_sofiev_sst = 1
+               icorrection_sst = 0
+               icorrection_local_organics_Arctic = 1
+               icorrection_whitecap = 1
+       endif
+       
+       if(config_flags%seas_updates==103) then
+              icorrection_sofiev_sst = 1
+              icorrection_sst = 0
+              icorrection_russell = 0
+              icorrection_local_organics_Arctic = 0
+       endif
+
+       if(config_flags%seas_updates==104) then
+              icorrection_sst = 1
+              icorrection_sofiev_sst = 0
+              icorrection_whitecap = 1
+              icorrection_russell = 0
+              icorrection_local_organics_Arctic = 0
+       endif
+
+       if(config_flags%seas_updates==105) then
+               icorrection_russell = 1
+               icorrection_local_organics_Arctic = 1
+               icorrection_whitecap = 1
+       endif
+
+       if(config_flags%seas_updates==106) then
+              icorrection_sst = 0
+              icorrection_sofiev_sst = 0
+              icorrection_whitecap = 0
+              icorrection_russell = 0
+              icorrection_local_organics_Arctic = 0
+       endif
+
+
+       !UPDATED DEC 2020 - based on Kirpes et al. 2019
+       if(icorrection_local_organics_Arctic.eq.1)then
+          org_frac_high_activity = (/ 0.4,  0.4,  0.4,  0.4,  0.4,  0.11,  0.11,  0.11 /)
+       endif
+        
 
 !   for now just do itype=1
 	itype = 1
@@ -862,6 +964,19 @@ size_loop: &
 
 
 !   compute emissions factors for each size bin
+!       !Updated DEC - 2020!
+!       Mosaic aerosol module (from 0.039 um to 10.0 um)
+!       dlo_sect(1,itype)=0.039e-4cm=0.039 um and dhi_sect(8,itype)=10.0 um
+!       dlow_sect = [0.0391 , 0.0781 , 0.1562 , 0.3125 , 0.6250 , 1.2500 , 2.5000 , 5.0000]
+!       dhigh_sect = [0.0781 , 0.1562 , 0.3125 , 0.6250 , 1.2500 , 2.5000 , 5.0000 , 10.0000]
+!       dlow_sect, dlow_sect (cm)
+!       only a fraction of bin 5 is < 1 micron (1.e-4 cm)
+
+        frac_bin5 = (1.e-4 - dlo_sect(5,itype)) / (dhi_sect(5,itype) - dlo_sect(5,itype))
+        !initialize arrays here - just to be sure - Update 2020
+        ssemfact_numb(:,itype) = 0.0
+        ssemfact_mass(:,itype) = 0.0
+
 	do n = 1, nsize_aer(itype)
 !     changed the lower bound of the emission size limit to match lowest section edge, Qing.Yang@pnl.gov
 	    ! DL - 30/3/2012 - select emission scheme (1=original, 3&4=Feuntes et al, 2011)
@@ -871,9 +986,18 @@ size_loop: &
 !	    	dumdhi = max( dhi_sect(n,itype), 0.1e-4 )
 	    	dumdlo = max( dlo_sect(n,itype), 0.02e-4 )
 	    	dumdhi = max( dhi_sect(n,itype), 0.02e-4 )
+                ! assume: bubble bursting and consequently sea salt production
+                ! depend 
+                ! linearly on wind and later W, fractional whitecap coverage 
+                ! mass or number = ssemfact * wind (or W)
+                ! ssemfact: size-resolved sea-salt (also spray) source fluxes 
+                ! for standard conditions (equivalent at wind/W=1
 	    	call seasalt_emitfactors_1bin( 1, dumdlo, dumdhi,   &
 			ssemfact_numb(n,itype), dum, ssemfact_mass(n,itype) )
 		elseif(seasalt_emiss_active .eq. 3 .or. seasalt_emiss_active .eq. 4)then
+                ! fuentes et al, 2010: W instead of wind
+                ! ssemfact: size-resolved sea-salt (also spray) source fluxes 
+                ! for standard conditions (equivalent at wind/W=1)
 		    call seasalt_emit_feuntes_1bin( dlo_sect(n,itype), dhi_sect(n,itype),  &
 		        ssemfact_numb(n,itype), dum, ssemfact_mass(n,itype), nti, dp0gi, oc02um(seasalt_emiss_active-2) )
 		endif
@@ -883,54 +1007,223 @@ size_loop: &
 	end do
 
   seas_flux(:,:) = 0.0
+  ! xice_thres is not used - check: if loop - cycle - xice_thres is fixed
+  xice_thres = 0.02 !if seaice_fraction = 1 /phys/module_physics_init.F
+  fraction_water_in_sea_ice = 1.0
+! first, fraction_water_in_sea_ice is recalculated afterwards:
+!                 fraction_water_in_sea_ice = 1 - xice(i,j)
+! second,  fraction_water_in_sea_ice is probably not the right term
+! xice(i,j): ice fraction,.i.e. fraction of the grid cell covered by sea ice
+! so fraction_water_in_sea_ice is fraction of ice-free grid cell
+! did you get confused with later
 
+! apportion seasalt mass emissions assumming that seasalt is pure nacl
 !   loop over i,j and apply seasalt emissions
 	k = kts
 	do j = jts, jte
 	do i = its, ite
 	
-		! Skip this point if over land. xland=1 for land and 2 for water.
+                ssemfact_masscor(:,itype,:) = 0.0
+
+		! Skip this point if over land. xland=1 for land and 2 for water.(original)
 		! Also, there is no way to differentiate fresh from salt water.
 		! Currently, this assumes all water is salty.
-		if( xland(i,j) < 1.5 ) cycle
-	
+		if( (xland(i,j) < 1.5) .and. ((xice(i,j) < 0.02) .or. (xice(i,j) >= 1.0)) ) cycle !correct - last check 08/12/2020
+                !if( xland(i,j) < 1.5 ) cycle    !!!!!original
 		!wig: As far as I can tell, only real.exe knows the fractional breakdown
 		!     of land use. So, in wrf.exe, dumoceanfrac will always be 1.
+
+                !Lefteris 2020
+                !W (whitecap fraction) from Monahan et al. 1986,1983 (3.84*10-6 * U10m ^ 3.41)
+                !3.84*10-6 is part of Gong equation, check: A MODEL OF MARINE AEROSOL GENERATION
+                !VIA WHITECAPS AND WAVE DISRUPTION page 3.
+                ! also explained in review Neumann et al., 2016
+                !If you use Fuentes change scale factor (seasalt_emit_feuntes_1bin)
+                !If you use only Gong be careful and check:seasalt_emitfactors_1bin
+                !Did not change W by Monahan in this subroutine
+
+                !Assign U,V at the first model layer to u_1st,v_1st and then calculate dumspd_1st to use
+                !for Russel equations
+                u_1st(i,j) = u_phy(i,1,j)
+                v_1st(i,j) = v_phy(i,1,j)
+
 		dumoceanfrac = 1. !fraction of grid i,j that is salt water
-		dumspd10 = dumoceanfrac* &
-			 ( (u10(i,j)*u10(i,j) + v10(i,j)*v10(i,j))**(0.5*3.41) )
-	
+		dumspd_1st = dumoceanfrac* &
+			 ( (u_1st(i,j)*u_1st(i,j) + v_1st(i,j)*v_1st(i,j))**(0.5) )
+	        !write(*,*) 'wind speed first model level',dumspd_1st                        
+                
+                ! Salisbury et al., 2013: whitecap fraction from 10 m wind
+                !  2 < wind10 < 20, m/s
+                dumspd10_sali = dumoceanfrac* &
+                        ( (u10(i,j)*u10(i,j) + v10(i,j)*v10(i,j))**(0.5*2.26) )
+                !Gong 1997
+                dumspd10 = dumoceanfrac* &
+                        ( (u10(i,j)*u10(i,j) + v10(i,j)*v10(i,j))**(0.5*3.41) )
+                
+                if (icorrection_whitecap.eq.1) then
+                   whitecap_10 = (4.60e-5)*dumspd10_sali
+                else
+                   whitecap_10 = (3.84e-6)*dumspd10
+                endif
+                !if (dumspd10_sali > 4.0) then  !Following Kirpes et al. 2018 - Barrow study; observed sea-salt when ws>4m/s
+                !     whitecap_10 = (4.60e-5)*dumspd10_sali
+                !else
+                !     whitecap_10 = 0.0
+                !endif
+
+                !test for sea-ice fraction;
+                !sea_ice_fraction = xice(i,j)
+                !if ( (xlong(i,j) >= -163.0 .and. xlong(i,j) <= -148.0) .and. (xlat(i,j) >= 69.0 .and. xlat(i,j) <= 73.0) ) then
+                !        write(*,*) 'xlong', xlong
+                !        write(*,*) 'xlat',xlat
+                !        sea_ice_fraction = 0.0
+                !        fraction_water_in_sea_ice = 1.0
+                !        write(*,*) 'fraction_water_in_sea_ice - lat long control',fraction_water_in_sea_ice
+                !else
+                !        fraction_water_in_sea_ice = 1.0 - sea_ice_fraction
+                !        write(*,*) 'fraction_water_in_sea_ice:',fraction_water_in_sea_ice
+                !endif
+                !write(*,*) 'fraction_water_in_sea_ice:',fraction_water_in_sea_ice
+                !Lefteris 2020 - updated DEC 2020
+                gama_sst = 1.0
+
+                if (icorrection_sst.eq.1) then
+
+                ! gama_sst: account for dependency of sea-salt emissions on SST
+                ! derived from dependency of biases between observations and
+                ! geoschem model on SST (Jaegle et al. 2011)
+                !Caclulate parameter gama based on Jaegle et al. 2011.
+                !If you run for summertime check Jiayue Huang and Lyatt Jaeglé 2017 and the
+                !the supplement 
+                !Based on Barthel et al. 2019, gama is between 0.01 and 10.
+                !Fig. 2 shows gama based on Jaegle parametrization is between 0.1 and 1.5
+                !Here the numbers for gama_sst at two 'elseif' based on my hemispheric simulations
+                !for JAN and FEB 2014. If gama_sst is out of range (negative values) crash the simulation
+                !chem/module_optical_averaging.F at at "ec diagnostics". 'refr' gets larfer than 10.0
+                !Subroutine seasalt_emitfactors_1bin (only Gong) and seasalt_emit_feuntes_1bin (Gong + Fuentes)
+                !calculate radius (dry and wet) and solve source function.
+                 if( sst(i,j) >= 271.15 .and. sst(i,j) <= 303.15 ) then
+                     ! set up above: dumoceanfrac = 1.0 !fraction of grid i,j that is salt water
+                     gama_sst = dumoceanfrac * ( 0.3 + 0.1*(sst(i,j) - 273.15) - &
+                     0.0076*(sst(i,j) - 273.15)**2 + 0.00021*(sst(i,j) - 273.15)**3)
+                                                           
+                     ! check that the gama_sst value is reasonable
+                     ! for example, Based on Barthel et al. 2019, gama is between 0.01 and 10
+                     ! if (gama_sst < 0.01) gama_sst=0.01 and if (gama_sst > 10.0) gama_sst=10.0
+                     ! better take limits below
+
+                     if (gama_sst < 0.1) gama_sst = 0.1
+                     if (gama_sst > 2.5) gama_sst = 2.5
+
+                 elseif ( sst(i,j) < 271.15 ) then
+                     gama_sst = 0.1
+                 elseif ( sst(i,j) > 303.15 ) then
+                     gama_sst = 2.5
+                 endif
+                endif  ! - icorrection_sst.eq.1
+                
+
+
+                ! probably not the right term
+                ! xice(i,j): ice fraction,.i.e. fraction of the grid cell covered by sea ice
+                ! so fraction_water_in_sea_ice is fraction of ice-free grid cell 
+                ! it makes sense to scale the emissions in a grid cell by fraction of ice-free grid cell
+                
+                !fraction_water_in_sea_ice = 1.0
+                fraction_water_in_sea_ice = 1.0 - xice(i,j)
+                
+
 		! factaa is (s*m2/kg-air)
 		! factaa*ssemfact_mass(n) is (s*m2/kg-air)*(ug/m2/s) = ug/kg-air
 		! factaa*ssemfact_numb(n) is (s*m2/kg-air)*( #/m2/s) =  #/kg-air
+                !  (dtstep (s: time step)/dz8w(m:layer thickness)*alt (m3_air/ kg_air:1/air density)
+                ! s*m2/kg_air: convert emis ( in concentrations in the grid cell
 		factaa = (dtstep/dz8w(i,k,j))*alt(i,k,j)
-	
-		factbb = factaa * dumspd10
-	
-		if(seasalt_emiss_active == 1)then
+	        !factbb is used later on for sea-salt emissions calculation
+                if ( (icorrection_sst.eq.0) .and. (icorrection_whitecap.eq.1) ) then
+                   factbb = factaa * whitecap_10 * fraction_water_in_sea_ice
+                elseif ( (icorrection_sst.eq.1) .and. (icorrection_whitecap.eq.0) ) then
+                   factbb = factaa * whitecap_10 * gama_sst * fraction_water_in_sea_ice
+                elseif ( (icorrection_sst.eq.1) .and. (icorrection_whitecap.eq.1) ) then
+                   factbb = factaa * whitecap_10 * gama_sst * fraction_water_in_sea_ice
+                elseif ( (icorrection_sst.eq.0) .and. (icorrection_whitecap.eq.0) ) then
+                   factbb = factaa * whitecap_10 * fraction_water_in_sea_ice
+                endif
+                                        
+
+                !Calculate Na1-Russell (=Cl1-Russell) and OM1sea-Russell based on
+                !Russel et al. 2009 and S3 table (for Arctic)!!
+                !linear fit and ONLY for submicron (< 1.0 micron). 
+                !! Russel (ug/m3) = f(wind(m/s))
+                !Supplement session WS:2-14m/s
+                !Setting an upper limit for wind speed which will be used for russell expression
+                if (icorrection_russell.eq.1) then
+                  dumspd_russell = dumspd_1st
+                  if (dumspd_russell > 17.0) dumspd_russell = 17.0
+               
+                  Na1_russell = 0.022*dumspd_russell - 0.012
+                  Cl1_russell = 0.022*dumspd_russell - 0.012
+                  OM1sea_russell = 0.025*dumspd_russell - 0.049
+                  ! According to the expressions above, OM1sea_russell,Na1_russell,Cl1_russell can be negative
+
+                  if (OM1sea_russell < 0.0) OM1sea_russell = 0.0  
+                  if (Na1_russell < 0.0) Na1_russell = 0.0
+                  if (Cl1_russell < 0.0) Cl1_russell = 0.0
+
+                  ! conversion from ug/m3 to ug/kg_air
+                  !   alt (m3_air/ kg_air :1/dry air density)
+                  !   ug/kg_air
+
+                  Na1_russell = Na1_russell*alt(i,k,j)
+                  Cl1_russell = Cl1_russell*alt(i,k,j)
+                  OM1sea_russell = OM1sea_russell*alt(i,k,j)
+                endif !icorrection_russell
+
+                if(seasalt_emiss_active == 1)then
 		
-		seas_flux(i,j) = dumspd10*SUM(ssemfact_mass(1:nsize_aer(itype),itype))
-		
-			! apportion seasalt mass emissions assumming that seasalt is pure nacl
-			fracna = mw_na_aer / (mw_na_aer + mw_cl_aer)
-			fraccl = 1.0 - fracna
+                     ! seas_flux in mass (ug/m2/s) and in number (#/m2/s)
+                     if ( (icorrection_sst.eq.1) .and. (icorrection_whitecap.eq.1) ) then
+                        seas_flux(i,j) = whitecap_10 * gama_sst * fraction_water_in_sea_ice *  &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                     elseif ( (icorrection_sst.eq.1) .and. (icorrection_whitecap.eq.0) ) then
+                        seas_flux(i,j) = whitecap_10 * gama_sst * fraction_water_in_sea_ice *  &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                     elseif ( (icorrection_sst.eq.0) .and. (icorrection_whitecap.eq.0) ) then
+                        seas_flux(i,j) = whitecap_10 * fraction_water_in_sea_ice * &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                     elseif ( (icorrection_sst.eq.0) .and. (icorrection_whitecap.eq.1) ) then
+                        seas_flux(i,j) = whitecap_10 * fraction_water_in_sea_ice * &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                     endif
+                     
+                     !seas_flux(i,j) = whitecap_10 * gama_sst * SUM(ssemfact_mass(1:nsize_aer(itype),itype))  !original
+		     ! apportion seasalt mass emissions assumming that seasalt is pure nacl
+		     fracna = mw_na_aer / (mw_na_aer + mw_cl_aer)
+		     fraccl = 1.0 - fracna
+                     fracssso4 = fracna * 0.2541
+                     fracna = (1.0-fracssso4)*fracna
+                     fraccl = (1.0-fracssso4)*fraccl
 		
 			do n = 1, nsize_aer(itype)
 		
 				! only apply emissions if bin has both na and cl species
 				l_na = lptr_na_aer(n,itype,iphase)
 				l_cl = lptr_cl_aer(n,itype,iphase)
-				if ((l_na >= p1st) .and. (l_cl >= p1st)) then
-			
+                                l_so4 = lptr_so4_aer(n,itype,iphase)
+				if ((l_na >= p1st) .and. (l_cl >= p1st) .and. (l_so4 >= p1st)) then
+			        !if ((l_na >= p1st) .and. (l_cl >= p1st)) then !original
 					chem(i,k,j,l_na) = chem(i,k,j,l_na) +   &
 						factbb * ssemfact_mass(n,itype) * fracna
 			
 					chem(i,k,j,l_cl) = chem(i,k,j,l_cl) +   &
 						factbb * ssemfact_mass(n,itype) * fraccl
-			
+			                !to add sea-salt SO4
+                                        chem(i,k,j,l_so4) = chem(i,k,j,l_so4) + &
+                                                factbb * ssemfact_mass(n,itype) * fracssso4
+                                        
 					l = numptr_aer(n,itype,iphase)
 					if (l >= p1st) chem(i,k,j,l) = chem(i,k,j,l) +   &
-										factbb * ssemfact_numb(n,itype)
+						factbb * ssemfact_numb(n,itype)
 		
 				end if
 				
@@ -938,8 +1231,9 @@ size_loop: &
 			
 			
 		elseif(seasalt_emiss_active.eq.3 .or. seasalt_emiss_active.eq.4)then
-			do n = 1, nsize_aer(itype)
 
+
+			do n = 1, nsize_aer(itype)
 				! apportion seasalt mass emissions assumming that seasalt is a 
 				! simple mix of pure nacl and a single primary organic 
 				if(seasalt_emiss_active.eq.3)then
@@ -949,33 +1243,369 @@ size_loop: &
 				endif
 				fracna = mw_na_aer / (mw_na_aer + mw_cl_aer)
 				fraccl = 1.0 - fracna
-				fracna = (1.0-fracorg)*fracna
-				fraccl = (1.0-fracorg)*fraccl
-		
-				! only apply emissions if bin has both na and cl species
+                                !mw_na_aer & mw_cl_aer can be found in this module: /chem/module_data_mosaic_asect.F
+                                !Following Kelly et al., 2010, Daniel Neumann Dissertation and CMAQ, then fracsss04 should be equal
+                                !to fracna/4.0 (p.83 dissertation ratio 0.0776/0.3086 (mass fraction SO4/ mass fraction Na in CMAQ
+                                !code)
+                                
+                                fracssso4 = fracna * 0.2514
+                                fracna = (1.0-fracorg)*fracna
+                                fraccl = (1.0-fracorg)*fraccl
+
+                                fracna = (1.0-fracssso4)*fracna
+                                fraccl = (1.0-fracssso4)*fraccl
+                                fracorg = (1.0-fracssso4)*fracorg
+                                !I followed the same logic as the equations above when using fracorg; fracorg + fracssso4 +
+                                !fracna + fraccl should be equal to 1.0
+                              !Be careful always which icorrection is active!! (there is one icorrection for Russell, for Jaelge SST and for
+                              !Sofiev SST correction factor)
+                              !Sofiev correction factor depends on dry paricle diameter - different per bin in MOSAIC - Sofiev correction
+                              !factor is applied inside do-loop over n (1 to 8)
+                              !apply linear interpolation to get alpha_sst and beta_sst for SST between -2 and 5 degrees,5 and
+                              !15 degrees and 15 to 30 degrees like Barthel et al. 2019
+                              !Celcious: y = [y0*(x1-x) + y1*(x-x0)]/(x1-x0); x is SST in celcius and y is either alpha_sst or
+                              !beta_sst. x is the known SST for which I am looking alpha_interpolated and beta_interpolated (y)
+                              ! need to be corrected and get alpha and beta based on 'in law' interpolation
+                              
+                        
+                              if (icorrection_sofiev_sst.eq.1) then  
+                               if (sst(i,j) >= 271.15 .and. sst(i,j) <= 278.15) then 
+                                  alpha_interpolated = (alpha_sst(1)*(x2 - (sst(i,j) - 273.15)) + & 
+                                          alpha_sst(2)*((sst(i,j) - 273.15) - x1))/(x2 - x1)
+                                  beta_interpolated = (beta_sst(1)*((x2) - (sst(i,j) - 273.15)) + &
+                                          beta_sst(2)*((sst(i,j) - 273.15) - x1))/(x2 - x1)
+                                  correction_factor_sofiev(n) = alpha_interpolated*mid_point_particle_diameter_per_bin(n)**beta_interpolated             
+                               elseif (sst(i,j) >= 278.15 .and. sst(i,j) <= 288.15) then
+                                    alpha_interpolated = (alpha_sst(2)*(x3 - (sst(i,j) - 273.15)) + &
+                                            alpha_sst(3)*((sst(i,j) - 273.15) - x2))/(x3 - x2)
+                                    beta_interpolated = (beta_sst(2)*(x3 - (sst(i,j) - 273.15)) + &
+                                            beta_sst(3)*((sst(i,j) - 273.15) - x2))/(x3 - x2)
+                                    correction_factor_sofiev(n) = alpha_interpolated*mid_point_particle_diameter_per_bin(n)**beta_interpolated
+                               elseif (sst(i,j) >= 288.15 .and. sst(i,j) <= 303.15) then
+                                    alpha_interpolated = (alpha_sst(3)*(x4 - (sst(i,j) - 273.15)) + &
+                                            alpha_sst(4)*((sst(i,j) - 273.15) - x3))/(x4 - x3)
+                                    beta_interpolated = (beta_sst(4)*(x4 - (sst(i,j) - 273.15)) + &
+                                            beta_sst(4)*((sst(i,j) - 273.15) - x3))/(x4 - x3)
+                                    correction_factor_sofiev(n) = alpha_interpolated*mid_point_particle_diameter_per_bin(n)**beta_interpolated
+                               elseif (sst(i,j) < 271.15) then !Just for check
+                                    correction_factor_sofiev(n) = array_default_values_per_bin_for_sst_lower_minus_2C(n)
+                               elseif (sst(i,j) > 303.15) then !Just for check
+                                    correction_factor_sofiev(n) = array_default_values_per_bin_for_sst_greater_30C(n)
+                               endif
+                              endif !-if icorrection_sofiev_sst
+
+
+				! only apply emissions if bin has both na, cl and oc species
 				l_na = lptr_na_aer(n,itype,iphase)
 				l_cl = lptr_cl_aer(n,itype,iphase)
 				l_oc = lptr_oc_aer(n,itype,iphase)
-				if ((l_na >= p1st) .and. (l_cl >= p1st) .and. (l_oc >= p1st)) then
-			
+                                l_so4 = lptr_so4_aer(n,itype,iphase)
+				if ((l_na >= p1st) .and. (l_cl >= p1st) .and. (l_oc >= p1st) .and. (l_so4 >= p1st)) then  !!checked - n:1-8 - 08/12/2020
+			        
+                                   if (icorrection_sofiev_sst.eq.1)then
 					chem(i,k,j,l_na) = chem(i,k,j,l_na) +   &
-						factbb * ssemfact_mass(n,itype) * fracna
+						factbb * ssemfact_mass(n,itype) * fracna * correction_factor_sofiev(n)
 			
 					chem(i,k,j,l_cl) = chem(i,k,j,l_cl) +   &
-						factbb * ssemfact_mass(n,itype) * fraccl
+						factbb * ssemfact_mass(n,itype) * fraccl * correction_factor_sofiev(n)
 
 					chem(i,k,j,l_oc) = chem(i,k,j,l_oc) +   &
-						factbb * ssemfact_mass(n,itype) * fracorg
-			
+						factbb * ssemfact_mass(n,itype) * fracorg * correction_factor_sofiev(n)
+
+                                        chem(i,k,j,l_so4) = chem(i,k,j,l_so4) + &
+                                                factbb * ssemfact_mass(n,itype) * fracssso4 * correction_factor_sofiev(n)
+
+                                        l = numptr_aer(n,itype,iphase)
+                                        if (l >= p1st) chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                        factbb * ssemfact_numb(n,itype) * correction_factor_sofiev(n)
+                                   else !original code, add sea-salt SO4 to SO4 array
+                           	        chem(i,k,j,l_na) = chem(i,k,j,l_na) + &
+                                                factbb * ssemfact_mass(n,itype) * fracna
+                                        
+                                        chem(i,k,j,l_cl) = chem(i,k,j,l_cl) +   &
+                                                factbb * ssemfact_mass(n,itype) * fraccl
+
+                                        chem(i,k,j,l_oc) = chem(i,k,j,l_oc) +   &
+                                                factbb * ssemfact_mass(n,itype) * fracorg
+                                                 
+                                        
+                                        chem(i,k,j,l_so4) = chem(i,k,j,l_so4) + &
+                                                factbb * ssemfact_mass(n,itype) * fracssso4
+                                                                    
+                                        
+
 					l = numptr_aer(n,itype,iphase)
 					if (l >= p1st) chem(i,k,j,l) = chem(i,k,j,l) +   &
-										factbb * ssemfact_numb(n,itype)
-		
+							factbb * ssemfact_numb(n,itype)
+                                   endif
 				end if
 				
 			end do ! n = 1, nsize_aer(itype)
-		endif
 
+                        ! also need to account for gama_sst/sofiev correction factor
+                        ! ug/m2/s
+                        !Seas-flux is calculated just after do loop!
+                        !Before applying Russell correction I will multiple seas-flux by the sum of correction factor based on
+                        !Sofiev correction factor if it's active
+                        if (icorrection_sst.eq.1) then
+                                seas_flux(i,j) = whitecap_10 * gama_sst * fraction_water_in_sea_ice *  &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                        elseif (icorrection_sofiev_sst.eq.1) then
+                                seas_flux(i,j) = whitecap_10 * fraction_water_in_sea_ice *  &
+                                             SUM(correction_factor_sofiev(1:nsize_aer(itype))) * SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                        else
+                                seas_flux(i,j) = whitecap_10 *  fraction_water_in_sea_ice *  &
+                                            SUM(ssemfact_mass(1:nsize_aer(itype),itype))
+                        endif
+
+
+                        !Correction to emissions according to Russel
+                        ! correction on if icorrection_russel=1
+                        !Na1-russel, Cl1-russel, and OM1sea-russel
+                        !here I will check if calculated submicron is at least >= to Russel values
+                        ! if not, set emissions to match Russel values
+                        !n is between 1 and 4 (first 4 bins in MOSAIC)
+                        !includes diameter up to 0.625um) and when n equals to 5 then use only fraction 5thbin, 
+                        !then calculate and multiply chem by the correction factor!
+                        !This is better to be applied when the study focuses on Arctic.
+                        ! only apply corrections if bin has both na, cl and oc species
+                        ! here test only bin 1
+                        !assuming that l_na,l_cl and l_oc are the same in bin 1
+                        !to 5
+                        n = 1
+
+                        l_na = lptr_na_aer(n,itype,iphase)
+                        l_cl = lptr_cl_aer(n,itype,iphase)
+                        l_oc = lptr_oc_aer(n,itype,iphase)
+                        !dumspd_russell must be bigger than 2 (based on Russell et al & supplement) 
+                        if ( (icorrection_russell.eq.1) .and. (dumspd_russell > 2.0) .and. &
+                           (l_na >= p1st) .and. (l_cl >= p1st) .and. (l_oc >= p1st) ) then
+
+                             rmass_inc_submicro = 0.0
+                             ssemfact_masscor(:,itype,:) = 0.0
+
+                             sum_submicro_na = SUM(chem(i,k,j,lptr_na_aer(1:4,itype,iphase))) + & 
+                                     frac_bin5*chem(i,k,j,lptr_na_aer(5,itype,iphase)) 
+
+                             sum_submicro_cl = SUM(chem(i,k,j,lptr_cl_aer(1:4,itype,iphase))) + & 
+                                     frac_bin5*chem(i,k,j,lptr_cl_aer(5,itype,iphase)) 
+
+                             sum_submicro_oc = SUM(chem(i,k,j,lptr_oc_aer(1:4,itype,iphase))) + &  
+                                     frac_bin5*chem(i,k,j,lptr_oc_aer(5,itype,iphase)) 
+
+
+
+                             ! total (=Na+ Cl+ OC) mass difference between model and obs
+                             ! derive emissions increment
+                             !***Na mass concentration difference between model and obs submicron
+                             ! assume correction is proportional to the ice-free fraction
+                             
+                             dummy = (Na1_russell - sum_submicro_na) * fraction_water_in_sea_ice
+                             !write(*,*) 'dummy - Na1',dummy
+                             if (dummy > 0.0) then
+
+                                 rmass_inc_submicro = rmass_inc_submicro + dummy 
+
+                                 ! calculate emission fluxes 
+                                 ! s*m2/kg_air: convert emis fluxes (mass: ug/m2/s and number: #/m2/s)
+                                 ! in concentration (mass: ug/kg and number: #/kg_air) in grid cell 
+                                 ! factaa = (dtstep/dz8w(i,k,j))*alt(i,k,j)
+                                 ! here, reverse /factaa: from concentration to emission
+                                 if (sum_submicro_na > 0.0) then 
+                                    !do loop for the first 4 MOSAIC (8) bins
+                                    do n = 1,4
+
+                                      ! dummy/factaa is mass conc difference converted in emission
+                                      ! chem/ sum_submicro_na is actual model Na mass fraction 
+                                      ! in size bin out of the total Na PM1 mass (from n=1 to 5)
+
+                                       l = lptr_na_aer(n,itype,iphase)
+
+                                       ssemfact_masscor(n,itype,1) = (dummy/factaa)* & 
+                                                chem(i,k,j,l)/sum_submicro_na 
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,1) 
+
+                                    enddo   
+                                    !5th bin
+                                    l = lptr_na_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,1) = (dummy/factaa)* & 
+                                                 frac_bin5*chem(i,k,j,l)/sum_submicro_na
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,1) 
+
+                                 else
+                                    !write(*,*) 'I am here for sum_submicro_na < 0.0'
+                                    do n = 1,4
+
+                                       l = lptr_na_aer(n,itype,iphase)
+
+                                       ssemfact_masscor(n,itype,1) = (dummy/factaa)/(4.0+frac_bin5)
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,1)
+
+                                    enddo
+
+                                    l = lptr_na_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,1) = frac_bin5*(dummy/factaa) / &
+                                                                       (4.0+frac_bin5)
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,1)
+
+                                 endif    ! (sum_submicro_na > 0.0)
+
+                             endif      ! if (dummy > 0.0) - for Na submicron
+                             
+
+                             !***Cl mass concentration difference between model and obs submicron                               
+                             dummy = (Cl1_russell - sum_submicro_cl)*fraction_water_in_sea_ice
+                             !write(*,*) 'dummy - Cl1',dummy
+                             if (dummy > 0.0) then
+
+                                rmass_inc_submicro = rmass_inc_submicro + dummy
+
+                                if (sum_submicro_cl > 0.0 ) then
+
+                                   do n = 1,4
+
+                                       l = lptr_cl_aer(n,itype,iphase)
+
+                                       ssemfact_masscor(n,itype,2) = (dummy/factaa)* &
+                                                chem(i,k,j, l)/sum_submicro_cl
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,2)
+
+                                    enddo
+
+                                    l = lptr_cl_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,2) = (dummy/factaa)* &
+                                                 frac_bin5*chem(i,k,j,l)/sum_submicro_cl
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,2)
+
+                                else
+                                    !write(*,*) 'I am here for sum_submicro_cl < 0.0'
+                                    do n = 1,4
+
+                                       l = lptr_cl_aer(n,itype,iphase)
+
+                                       ssemfact_masscor(n,itype,2) = (dummy/factaa)/(4.0+frac_bin5)
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,2)
+
+                                    enddo
+
+                                    l = lptr_cl_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,2) = frac_bin5*(dummy/factaa) / &
+                                                                       (4.0+frac_bin5)
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,2)
+
+                                endif    ! (sum_submicro_cl > 0.0)
+
+                             endif      ! if (dummy > 0.0)
+                             
+                             !***Org mass concentration difference between model and obs submicron
+                             dummy= (OM1sea_russell - sum_submicro_oc)*fraction_water_in_sea_ice
+                             !write(*,*) 'dummy - OM1', dummy
+                             if (dummy > 0.0) then
+
+                                rmass_inc_submicro = rmass_inc_submicro + dummy
+
+                                if (sum_submicro_oc > 0.0 ) then
+
+                                   do n = 1,4
+
+                                       l = lptr_oc_aer(n,itype,iphase)
+
+                                       ssemfact_masscor(n,itype,3)= (dummy/factaa)* &
+                                                chem(i,k,j, l)/sum_submicro_oc
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,3)
+
+                                    enddo
+
+                                    l = lptr_oc_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,3)= (dummy/factaa)* &
+                                                 frac_bin5*chem(i,k,j,l)/sum_submicro_cl
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,3)
+
+                                else
+                                    !write(*,*) 'I am here for sum_submicro_oc < 0.0'
+                                    do n = 1,4
+
+                                       l = lptr_oc_aer(n,itype,iphase)
+                                       
+                                       ssemfact_masscor(n,itype,3)= (dummy/factaa)/(4.0+frac_bin5)
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(n,itype,3)
+
+                                    enddo
+
+                                    l = lptr_oc_aer(5,itype,iphase)
+
+                                    ssemfact_masscor(5,itype,3)= frac_bin5*(dummy/factaa) / &
+                                                                       (4.0+frac_bin5)
+
+                                    chem(i,k,j,l) = chem(i,k,j,l) +   &
+                                                factaa * ssemfact_masscor(5,itype,3)
+
+                                endif    ! (sum_submicro_oc > 0.0)
+
+                             endif      ! if (dummy > 0.0)
+                             
+
+                             dummy = 0.0 
+
+                             do n = 1,5
+
+                                  l = numptr_aer(n,itype,iphase)
+
+                                 if (l >= p1st) then
+
+                                       dummy = dummy + &
+                                       ssemfact_masscor(n,itype,1) + ssemfact_masscor(n,itype,2) +  &
+                                       ssemfact_masscor(n,itype,3)
+
+                                       chem(i,k,j,l) = chem(i,k,j,l) + factaa * &
+                                           ( ssemfact_masscor(n,itype,1) + ssemfact_masscor(n,itype,2) +  &
+                                           ssemfact_masscor(n,itype,3) ) *  &
+                                           ( ssemfact_numb(n,itype) / ssemfact_mass(n,itype) )
+
+                                 endif
+
+                            enddo
+
+                            !write(*,*) ' check additional seasalt emissions in kg/m2/s'
+                            !write(*,*) i,j,dummy, rmass_inc_submicro/factaa
+
+                            ! ug/m2/s
+                            seas_flux(i,j) = seas_flux(i,j) + rmass_inc_submicro/factaa
+
+
+
+                        endif !  end of Russell test if icorrection_russell.eq.1 and l_na >= p1st ….
+
+                endif ! end of test on seasalt_emiss_active
+
+                
 	end do ! i = its, ite
 	end do ! j = jts, jte
 
@@ -1139,7 +1769,7 @@ size_loop: &
 	df0drwet = 1.373 * (rwet**(-3.0)) * 			&
       		(1.0 + 0.057*(rwet**1.05)) * 			&
       		(10.0**(1.19*dumexpb))
-
+        df0drwet = df0drwet/3.84e-6
 	dumsum_na = dumsum_na + drwet*df0drwet
 	dumsum_ma = dumsum_ma + drwet*df0drwet*xmdry
 	dumsum_sa = dumsum_sa + drwet*df0drwet*xsdry
@@ -1179,7 +1809,7 @@ size_loop: &
 	df0drwet = 1.373 * (rwet**(-3.0)) * 			&
       		(1.0 + 0.057*(rwet**1.05)) * 			&
       		(10.0**(1.19*dumexpb))
-
+        df0drwet = df0drwet/3.84e-6
 	drwet = rwetbb - rwetaa
 	dlnrdry = log( rdrybb/rdryaa )
 	df0dlnrdry_star = df0drwet * (drwet/dlnrdry)
@@ -1317,8 +1947,9 @@ size_loop: &
 	!          Monahan and O'Muircheartaigh (1980) - as the Gong et al formulation
 	!          includes a whitecap coverage factor too
 	! this is for converting from dNt to dFp for Fuentes et al (ACP, 2010)
-	real, parameter :: scale_factor = 58.3/(0.0146)*3.84e-6 !0.01533
-
+	!real, parameter :: scale_factor = 58.3/(0.0146)*3.84e-6 !0.01533
+        real, parameter :: scale_factor = 58.3/(0.0146) !0.01533 !Need to remove 3.84e-6 because it's coming from
+        !Monahan W equation and I am using Salisbury et al. W10
 
 	! select which distribution width to use for Fuentes et al,
 	if(oc02um.gt.0e0)then
@@ -1394,7 +2025,6 @@ size_loop: &
 			! compute rdry, rwet (micrometers) at sub_bin upper boundary
 			dum = alnrdrylo + isub_bin*dlnrdry
 			rdrybb = exp( dum )
-
 			rdry_cm = rdrybb*1.0e-4
 			rwet_cm = ( rdry_cm**3 + (c1*(rdry_cm**c2))/		&
       				( (c3*(rdry_cm**c4)) - log10(relhum) ) )**onethird
@@ -1418,7 +2048,8 @@ size_loop: &
 			df0drwet = 1.373 * (rwet**(-3.0)) * 			&
       				(1.0 + 0.057*(rwet**1.05)) * 			&
       				(10.0**(1.19*dumexpb))
-
+                        !Lefteris:I will divide df0drwet by 3.84*10-6 to remove it's dependence.The same line 1593
+                        df0drwet = df0drwet/3.84e-6
 			dumsum_na = dumsum_na + drwet*df0drwet
 			dumsum_ma = dumsum_ma + drwet*df0drwet*xmdry
 			dumsum_sa = dumsum_sa + drwet*df0drwet*xsdry
@@ -1551,7 +2182,7 @@ size_loop: &
 			df0drwet = 1.373 * (rwet**(-3.0)) * 			&
       				(1.0 + 0.057*(rwet**1.05)) * 			&
       				(10.0**(1.19*dumexpb))
-
+                        df0drwet = df0drwet/3.84e-6
 			dumsum_na = dumsum_na + drwet*df0drwet
 			dumsum_ma = dumsum_ma + drwet*df0drwet*xmdry
 			dumsum_sa = dumsum_sa + drwet*df0drwet*xsdry
@@ -1863,22 +2494,22 @@ END MODULE module_mosaic_addemiss
            f51=0.066
            f52=0.00
            alphamask=(f8+f50)*1.0+(f51+f52)*0.5
-         endif
-         if (ivgtyp(i,j) .eq. 8) then
+          endif
+          if (ivgtyp(i,j) .eq. 8) then
            f8=0.010
            f50=0.00
            f51=0.00
            f52=0.15
            f52=0.10
            alphamask=(f8+f50)*1.0+(f51+f52)*0.5
-         endif
-         if (ivgtyp(i,j) .eq. 10) then
+          endif
+          if (ivgtyp(i,j) .eq. 10) then
            f8=0.00
            f50=0.00
            f51=0.01
            f52=0.00
            alphamask=(f8+f50)*1.0+(f51+f52)*0.5
-         endif
+          endif
 
 ! part2 - zobler
 ! 
@@ -2016,7 +2647,7 @@ END MODULE module_mosaic_addemiss
 !====================================================================================
   subroutine mosaic_dust_gocartemis (dt,start_month,num_soil_layers,alt,  &            
          u_phy,v_phy,chem,rho_phy,dz8w,smois,u10,v10,erod,                &
-         isltyp,xland,g,                                                  &
+         isltyp,xland,dx,g,                                         &
          emis_dust,                                                       &
          ids,ide, jds,jde, kds,kde,                                       &
          ims,ime, jms,jme, kms,kme,                                       &
@@ -2058,7 +2689,7 @@ END MODULE module_mosaic_addemiss
                                                      dz8w,                 &
                                               u_phy,v_phy,rho_phy
 
-  REAL, INTENT(IN   ) :: dt,g
+  REAL, INTENT(IN   ) :: dt,dx,g
 !
 ! local variables
 !
