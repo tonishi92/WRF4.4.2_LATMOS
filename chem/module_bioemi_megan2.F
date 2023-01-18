@@ -1610,7 +1610,11 @@ is_mozm_species : &
                       ELSE IF ( p_in_chem .EQ. p_tol) THEN	
                          ebio_tol(i,j)       = ebio_tol(i,j)        + gas_emis
                          e_bio(i,j,p_tol-1)  = e_bio(i,j,p_tol-1)   + gas_emis*convert2
-
+!jcr
+                      ELSE IF ( p_in_chem .EQ. p_dms) THEN
+!                         ebio_dms(i,j)       = ebio_dms(i,j)        + gas_emis  !TO
+                         e_bio(i,j,p_dms-1) = e_bio(i,j,p_dms-1) + gas_emis*convert2
+!jcr
                       END IF
 
 

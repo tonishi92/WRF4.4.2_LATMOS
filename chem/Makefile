@@ -76,6 +76,8 @@ MODULES =                                 \
         module_chem_plumerise_scalar.o    \
         module_dep_simple.o               \
         module_gocart_dmsemis.o           \
+        module_mosaic_dmsemis.o            \
+        module_nightingale_dmsemis.o      \
         module_gocart_aerosols.o          \
         module_gocart_dust.o              \
         module_gocart_dust_afwa.o         \

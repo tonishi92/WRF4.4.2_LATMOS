@@ -95,6 +95,9 @@ CONTAINS
   USE gocart_seasalt
   USE uoc_dust  
   USE module_dms_emis
+!lm Add a new dms emission option
+  USE module_nightingale_dmsemis, only: nightingale_dmsemis
+!lm
   USE module_mosaic_addemiss
   USE module_add_emis_cptec
   USE module_add_emiss_burn
@@ -779,6 +782,16 @@ CONTAINS
          ids,ide, jds,jde, kds,kde,                                        &
          ims,ime, jms,jme, kms,kme,                                        &
          its,ite, jts,jte, kts,kte                                         )
+!lm Add a new DMS emission scheme
+      CASE (DMS_NIGHTINGALE)
+        CALL wrf_debug(15,'Nightingale et al. dms emissions')
+        call nightingale_dmsemis( id, dtstep, dz8w, config_flags,   &
+         u_phy, v_phy, rho_phy, chem,emis_ant,alt,                  &
+         u10, v10, xland, tsk,                                      &
+         ids,ide, jds,jde, kds,kde,                                 &
+         ims,ime, jms,jme, kms,kme,                                 &
+         its,ite, jts,jte, kts,kte                                  )
+!lm
       CASE DEFAULT 
         CALL wrf_debug(15,'no dms emissions')
       END SELECT dms_select
